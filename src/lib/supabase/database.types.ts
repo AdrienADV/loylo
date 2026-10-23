@@ -100,6 +100,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"program_invitations": {
+                  Row: {
+                    "created_at": string,"email": string,"expires_at": string,"id": string,"invited_by": string | null,"program_id": string,"role": Database["public"]['Enums']["program_role"],"token_hash": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"email": string,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"program_id": string,"role"?: Database["public"]['Enums']["program_role"],"token_hash": string
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"program_id"?: string,"role"?: Database["public"]['Enums']["program_role"],"token_hash"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "program_invitations_program_id_fkey"
+      columns: ["program_id"]
+isOneToOne: false
+      referencedRelation: "programs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"program_members": {
+                  Row: {
+                    "created_at": string,"program_id": string,"role": Database["public"]['Enums']["program_role"],"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"program_id": string,"role"?: Database["public"]['Enums']["program_role"],"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"program_id"?: string,"role"?: Database["public"]['Enums']["program_role"],"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "program_members_program_id_fkey"
+      columns: ["program_id"]
+isOneToOne: false
+      referencedRelation: "programs"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"programs": {
                   Row: {
                     "background_color": string,"created_at": string,"id": string,"initial_points": number,"logo_path": string | null,"name": string,"owner_id": string,"updated_at": string,"wallet_message": string | null
@@ -138,8 +176,16 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "adjust_points":
+            "accept_program_invitation":
+{ Args: { "token": string,"user_id": string }; Returns: string
+                           },
+"adjust_points":
 { Args: { "delta": number,"member_id": string }; Returns: number
+                           },
+"create_program_invitation":
+{ Args: { "email": string,"invited_by": string,"program_id": string }; Returns: {
+              "expires_at": string,"invitation_id": string,"token": string
+            }[]
                            },
 "create_notification":
 { Args: { "message": string,"monthly_cap": number,"program_id": string,"sent_by": string }; Returns: {
@@ -187,9 +233,19 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"get_program_invitation":
+{ Args: { "token": string }; Returns: {
+              "email": string,"program_id": string,"program_name": string
+            }[]
+                           },
 "list_program_apple_devices":
 { Args: { "program_id": string }; Returns: {
               "device_library_identifier": string,"pass_ids": (string)[],"push_token": string
+            }[]
+                           },
+"list_program_team":
+{ Args: { "program_id": string }; Returns: {
+              "email": string,"joined_at": string,"role": Database["public"]['Enums']["program_role"],"user_id": string
             }[]
                            },
 "notification_usage":
@@ -208,7 +264,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "point_transaction_kind": "welcome"|"adjustment","wallet_provider": "apple"|"google"
+            "point_transaction_kind": "welcome"|"adjustment","program_role": "admin"|"member","wallet_provider": "apple"|"google"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -324,7 +380,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "point_transaction_kind": ["welcome", "adjustment"],"wallet_provider": ["apple", "google"]
+            "point_transaction_kind": ["welcome", "adjustment"],"program_role": ["admin", "member"],"wallet_provider": ["apple", "google"]
           }
         }
 } as const

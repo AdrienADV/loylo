@@ -190,6 +190,30 @@ export function getNotificationsConfig() {
 	return { monthlyCap: env.NOTIFICATIONS_MONTHLY_CAP };
 }
 
+const emailEnvSchema = z.object({
+	RESEND_API_KEY: z.string().startsWith("re_", "Expected a Resend API key"),
+	// `Name <address@domain>` or a bare address, on a domain verified in Resend.
+	EMAIL_FROM: z.string().min(3),
+});
+
+export function getEmailConfig() {
+	const env = parseEnv(emailEnvSchema, "email");
+	return { resendApiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM };
+}
+
+export type EmailConfig = ReturnType<typeof getEmailConfig>;
+
+/**
+ * Emails are optional: `null` when the deployment sets no Resend key. Without
+ * them, admins copy invitation links themselves.
+ */
+export function getOptionalEmailConfig(): EmailConfig | null {
+	if (!process.env.RESEND_API_KEY && !process.env.EMAIL_FROM) {
+		return null;
+	}
+	return getEmailConfig();
+}
+
 export function getGoogleWalletConfig() {
 	const env = parseEnv(googleWalletEnvSchema, "Google Wallet");
 	const serviceAccount = env.GOOGLE_SERVICE_ACCOUNT_JSON;

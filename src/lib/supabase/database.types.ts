@@ -233,6 +233,11 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"program_stats":
+{ Args: { "program_id": string }; Returns: {
+              "members": number,"members_in_wallet": number,"new_members": number,"point_additions": number,"redemptions": number
+            }[]
+                           },
 "get_program_invitation":
 { Args: { "token": string }; Returns: {
               "email": string,"program_id": string,"program_name": string

@@ -16,19 +16,6 @@ const PERIODS: { value: Period; label: string }[] = [
 /** Prices in euros a month, by billing period. */
 const PLANS = [
 	{
-		name: "Free",
-		description: "Try it with your first regulars.",
-		prices: { month: 0, year: 0 },
-		cta: "Start for free",
-		features: [
-			"1 loyalty card",
-			"Up to 100 customers",
-			"Apple Wallet and Google Wallet",
-			"Scan with your phone",
-			"Points history",
-		],
-	},
-	{
 		name: "Pro",
 		description: "For a shop with regulars.",
 		prices: { month: 15, year: 12 },
@@ -37,9 +24,9 @@ const PLANS = [
 		features: [
 			"1 loyalty card",
 			"Unlimited customers",
+			"Apple Wallet and Google Wallet",
 			"8 messages a month on the card",
 			"Up to 3 team members",
-			"No Loylo branding",
 		],
 	},
 	{
@@ -50,9 +37,9 @@ const PLANS = [
 		features: [
 			"Up to 5 loyalty cards",
 			"Unlimited customers",
+			"Apple Wallet and Google Wallet",
 			"30 messages a month on the card",
 			"Up to 15 team members",
-			"No Loylo branding",
 		],
 	},
 ];
@@ -75,8 +62,7 @@ export function Pricing() {
 							A flat price, whatever your number of customers
 						</h2>
 						<p className="text-[17px] text-muted-foreground leading-8">
-							Start for free. No fee per customer or per visit, no hardware,
-							cancel anytime.
+							No fee per customer or per visit, no hardware, cancel anytime.
 						</p>
 					</header>
 					<fieldset className="inline-flex items-center gap-1 rounded-xl bg-muted/70 p-1">
@@ -102,7 +88,7 @@ export function Pricing() {
 						))}
 					</fieldset>
 				</div>
-				<div className="mt-12 grid gap-3 lg:grid-cols-3">
+				<div className="mt-12 grid gap-3 md:grid-cols-2">
 					{PLANS.map((plan) => (
 						<article
 							key={plan.name}
@@ -136,10 +122,9 @@ export function Pricing() {
 									<span className="text-muted-foreground text-sm">/ month</span>
 								</p>
 								<p className="h-5 text-muted-foreground text-xs">
-									{plan.prices.month > 0 &&
-										(period === "year"
-											? `€${plan.prices.year * 12} billed yearly`
-											: "Billed monthly")}
+									{period === "year"
+										? `€${plan.prices.year * 12} billed yearly`
+										: "Billed monthly"}
 								</p>
 							</div>
 							<Link

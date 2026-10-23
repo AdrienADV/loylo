@@ -151,7 +151,7 @@ const FAQ = [
 	{
 		question: "How much does it cost?",
 		answer:
-			"You can start for free, up to 100 customers. Pro is €15 a month (€12 billed yearly) with unlimited customers and messages on the card; Multi-shop is €39 a month for up to 5 cards. No fee per customer or per visit.",
+			"Pro is €15 a month (€12 billed yearly) for one card, with unlimited customers and messages on the card. Multi-shop is €39 a month (€32 billed yearly) for up to 5 cards. No fee per customer or per visit.",
 	},
 	{
 		question: "Do my customers need to download an app?",

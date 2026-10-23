@@ -6,6 +6,7 @@ import {
 	issuePass,
 	listAvailableWallets,
 } from "#/features/members/members.functions";
+import { PassPreview } from "#/features/programs/components/pass-preview";
 import { getAppOrigin } from "#/lib/app-origin";
 import { CopyButton } from "@/components/copy-button";
 import { FormAlert } from "@/components/form-alert";
@@ -38,40 +39,53 @@ function IssuePassPage() {
 	}
 
 	return (
-		<div className="flex max-w-md flex-col gap-6">
-			<div className="flex flex-col gap-1">
-				<h2 className="font-semibold text-lg">Issue a card</h2>
-				<p className="text-muted-foreground text-sm">
-					For a customer at your counter. A customer who already has a card gets
-					a new one with their current points.
-				</p>
+		<div className="grid gap-8 lg:grid-cols-[minmax(0,28rem)_20rem]">
+			<div className="flex flex-col gap-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-lg">Issue a card</h2>
+					<p className="text-muted-foreground text-sm">
+						For a customer at your counter. A customer who already has a card
+						gets a new one with their current points.
+					</p>
+				</div>
+				{wallets.apple || wallets.google ? (
+					<MemberPassForm
+						wallets={wallets}
+						submitLabels={{
+							apple: "Issue an Apple Wallet card",
+							google: "Issue a Google Wallet card",
+						}}
+						pendingLabel="Issuing…"
+						autofill={false}
+						onSubmit={async (fields) => {
+							const { passLink, memberCreated } = await issuePassFn({
+								data: { ...fields, programId: program.id },
+							});
+							setIssued({
+								url: `${getAppOrigin()}${passLink}`,
+								memberName: `${fields.firstName} ${fields.lastName}`,
+								memberCreated,
+							});
+						}}
+					/>
+				) : (
+					<FormAlert>
+						No wallet is configured: set up Apple Wallet or Google Wallet to
+						issue cards.
+					</FormAlert>
+				)}
 			</div>
-			{wallets.apple || wallets.google ? (
-				<MemberPassForm
-					wallets={wallets}
-					submitLabels={{
-						apple: "Issue an Apple Wallet card",
-						google: "Issue a Google Wallet card",
-					}}
-					pendingLabel="Issuing…"
-					autofill={false}
-					onSubmit={async (fields) => {
-						const { passLink, memberCreated } = await issuePassFn({
-							data: { ...fields, programId: program.id },
-						});
-						setIssued({
-							url: `${getAppOrigin()}${passLink}`,
-							memberName: `${fields.firstName} ${fields.lastName}`,
-							memberCreated,
-						});
-					}}
+			<aside className="flex flex-col gap-3">
+				<PassPreview
+					name={program.name}
+					backgroundColor={program.backgroundColor}
+					points={program.initialPoints}
+					logoUrl={program.logoUrl}
 				/>
-			) : (
-				<FormAlert>
-					No wallet is configured: set up Apple Wallet or Google Wallet to issue
-					cards.
-				</FormAlert>
-			)}
+				<p className="text-muted-foreground text-sm">
+					New members start with {program.initialPoints} points.
+				</p>
+			</aside>
 		</div>
 	);
 }

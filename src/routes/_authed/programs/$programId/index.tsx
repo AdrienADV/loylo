@@ -8,9 +8,12 @@ import {
 import type { FormEvent } from "react";
 import { z } from "zod";
 import { MemberList } from "#/features/members/components/member-list";
-import { listMembers } from "#/features/members/members.functions";
+import { ProgramStats } from "#/features/members/components/program-stats";
+import {
+	getProgramStats,
+	listMembers,
+} from "#/features/members/members.functions";
 import { memberCursorSchema } from "#/features/members/members.schemas";
-import { PassPreview } from "#/features/programs/components/pass-preview";
 import { FormAlert } from "@/components/form-alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,19 +33,27 @@ export const Route = createFileRoute("/_authed/programs/$programId/")({
 			.catch(undefined),
 	}),
 	loaderDeps: ({ search }) => ({ q: search.q, after: search.after }),
-	loader: ({ params, deps }) => {
+	loader: async ({ params, deps }) => {
 		if (!z.uuid().safeParse(params.programId).success) {
 			throw notFound();
 		}
-		return listMembers({
-			data: { programId: params.programId, search: deps.q, after: deps.after },
-		});
+		const [page, stats] = await Promise.all([
+			listMembers({
+				data: {
+					programId: params.programId,
+					search: deps.q,
+					after: deps.after,
+				},
+			}),
+			getProgramStats({ data: { programId: params.programId } }),
+		]);
+		return { ...page, stats };
 	},
 	component: ProgramOverviewPage,
 });
 
 function ProgramOverviewPage() {
-	const program = programRoute.useLoaderData();
+	const { stats } = Route.useLoaderData();
 	const { walletSync } = Route.useSearch();
 
 	return (
@@ -53,27 +64,15 @@ function ProgramOverviewPage() {
 					again from the settings to retry.
 				</FormAlert>
 			) : null}
-			<div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-				<Members />
-				<aside className="flex flex-col gap-3">
-					<PassPreview
-						name={program.name}
-						backgroundColor={program.backgroundColor}
-						points={program.initialPoints}
-						logoUrl={program.logoUrl}
-					/>
-					<p className="text-muted-foreground text-sm">
-						New members start with {program.initialPoints} points.
-					</p>
-				</aside>
-			</div>
+			<ProgramStats stats={stats} />
+			<Members />
 		</div>
 	);
 }
 
 function Members() {
 	const program = programRoute.useLoaderData();
-	const { members, nextCursor, total } = Route.useLoaderData();
+	const { members, nextCursor } = Route.useLoaderData();
 	const { q, after } = Route.useSearch();
 	const navigate = useNavigate({ from: Route.fullPath });
 
@@ -89,28 +88,25 @@ function Members() {
 
 	return (
 		<section className="flex min-w-0 flex-col gap-4">
-			<div className="flex items-baseline justify-between gap-4">
+			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 				<h2 className="font-semibold text-lg">Members</h2>
-				<span className="text-muted-foreground text-sm">
-					{total === 1 ? "1 member" : `${total} members`}
-				</span>
+				<search className="w-full sm:w-80">
+					<form onSubmit={handleSearch} className="flex gap-2">
+						<Input
+							key={q}
+							name="q"
+							type="search"
+							defaultValue={q}
+							maxLength={100}
+							placeholder="Search by name or email"
+							aria-label="Search members"
+						/>
+						<Button type="submit" variant="outline">
+							Search
+						</Button>
+					</form>
+				</search>
 			</div>
-			<search>
-				<form onSubmit={handleSearch} className="flex gap-2">
-					<Input
-						key={q}
-						name="q"
-						type="search"
-						defaultValue={q}
-						maxLength={100}
-						placeholder="Search by name or email"
-						aria-label="Search members"
-					/>
-					<Button type="submit" variant="outline">
-						Search
-					</Button>
-				</form>
-			</search>
 			{members.length > 0 ? (
 				<MemberList programId={program.id} members={members} />
 			) : (

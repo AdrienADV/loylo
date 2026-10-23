@@ -221,23 +221,28 @@ export const listTransactions = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
 	.validator(transactionListSchema)
 	.handler(async ({ data, context }) => {
+		// Including the `before` transaction gives the date this page ends at.
 		let query = context.supabase
 			.from("point_transactions")
 			.select(TRANSACTION_COLUMNS)
 			.eq("member_id", data.memberId)
 			.order("id", { ascending: false })
-			.limit(TRANSACTIONS_PAGE_SIZE + 1);
+			.limit(TRANSACTIONS_PAGE_SIZE + (data.before ? 2 : 1));
 		if (data.before) {
-			query = query.lt("id", data.before);
+			query = query.lte("id", data.before);
 		}
-		const { data: rows, error } = await query;
+		const { data: allRows, error } = await query;
 		if (error) {
 			throw databaseError("load the points history", error);
 		}
 
+		const newer = allRows[0]?.id === data.before ? allRows[0] : undefined;
+		const rows = newer ? allRows.slice(1) : allRows;
 		const transactions = rows.slice(0, TRANSACTIONS_PAGE_SIZE);
 		return {
 			transactions: transactions.map(toTransactionView),
+			/** Events after this date belong to newer pages; null on the first. */
+			until: newer?.created_at ?? null,
 			nextBefore:
 				rows.length > TRANSACTIONS_PAGE_SIZE
 					? (transactions.at(-1)?.id ?? null)

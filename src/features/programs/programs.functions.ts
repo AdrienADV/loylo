@@ -12,14 +12,18 @@ import {
 	readProgramImages,
 	removeProgramImages,
 	syncGoogleLoyaltyClass,
+	TEAM_PROGRAM_COLUMNS,
 	toProgramView,
+	toTeamProgramView,
 	uploadProgramImages,
 } from "#/features/programs/programs.server";
+import { requireProgramAdmin } from "#/features/team/team.server";
 import { syncProgramWallets } from "#/features/wallet-sync/wallet-sync.server";
 import { databaseError } from "#/lib/supabase/errors.server";
 
 /**
- * Row Level Security limits every query to the signed-in merchant's programs:
+ * Row Level Security limits every query to the programs whose team the
+ * signed-in user is in, and changes to the programs they are an admin of:
  * another merchant's program ID behaves like a missing one.
  */
 
@@ -41,12 +45,13 @@ export const listPrograms = createServerFn({ method: "GET" })
 	.handler(async ({ context }) => {
 		const { data, error } = await context.supabase
 			.from("programs")
-			.select(PROGRAM_COLUMNS)
+			.select(TEAM_PROGRAM_COLUMNS)
+			.eq("program_members.user_id", context.userId)
 			.order("created_at", { ascending: false });
 		if (error) {
 			throw databaseError("load your programs", error);
 		}
-		return data.map((row) => toProgramView(context.supabase, row));
+		return data.map((row) => toTeamProgramView(context.supabase, row));
 	});
 
 export const getProgram = createServerFn({ method: "GET" })
@@ -55,8 +60,9 @@ export const getProgram = createServerFn({ method: "GET" })
 	.handler(async ({ data, context }) => {
 		const { data: row, error } = await context.supabase
 			.from("programs")
-			.select(PROGRAM_COLUMNS)
+			.select(TEAM_PROGRAM_COLUMNS)
 			.eq("id", data.programId)
+			.eq("program_members.user_id", context.userId)
 			.maybeSingle();
 		if (error) {
 			throw databaseError("load the program", error);
@@ -64,7 +70,7 @@ export const getProgram = createServerFn({ method: "GET" })
 		if (!row) {
 			throw notFound();
 		}
-		return toProgramView(context.supabase, row);
+		return toTeamProgramView(context.supabase, row);
 	});
 
 export const createProgram = createServerFn({ method: "POST" })
@@ -112,6 +118,8 @@ export const updateProgram = createServerFn({ method: "POST" })
 		};
 	})
 	.handler(async ({ data: { programId, fields, formData }, context }) => {
+		// Before uploading anything: team members cannot change the program.
+		await requireProgramAdmin(context.supabase, programId, context.userId);
 		const { data: current, error: readError } = await context.supabase
 			.from("programs")
 			.select("logo_path")
@@ -167,6 +175,7 @@ export const deleteProgram = createServerFn({ method: "POST" })
 	.middleware([authMiddleware])
 	.validator(programIdSchema)
 	.handler(async ({ data, context }) => {
+		await requireProgramAdmin(context.supabase, data.programId, context.userId);
 		const { data: row, error } = await context.supabase
 			.from("programs")
 			.delete()

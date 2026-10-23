@@ -48,6 +48,7 @@ export function PointsForm({
 						name="direction"
 						value="add"
 						disabled={form.pending}
+						className="bg-success text-white hover:bg-success/85"
 					>
 						{form.pending && submitted === "add" ? "Adding…" : "Add points"}
 					</Button>

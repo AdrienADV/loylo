@@ -1,4 +1,5 @@
 import {
+	Await,
 	createFileRoute,
 	getRouteApi,
 	notFound,
@@ -7,7 +8,10 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { z } from "zod";
-import { NotificationForm } from "#/features/notifications/components/notification-form";
+import {
+	NotificationForm,
+	NotificationFormSkeleton,
+} from "#/features/notifications/components/notification-form";
 import {
 	getNotificationQuota,
 	listNotifications,
@@ -21,6 +25,7 @@ import { retryProgramWalletSync } from "#/features/programs/programs.functions";
 import type { WalletSyncResult } from "#/features/wallet-sync/wallet-sync";
 import { FormAlert } from "@/components/form-alert";
 import { FormattedDate } from "@/components/formatted-date";
+import { SkeletonText } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 
@@ -29,16 +34,16 @@ const programRoute = getRouteApi("/_authed/programs/$programId");
 export const Route = createFileRoute(
 	"/_authed/programs/$programId/notifications",
 )({
-	loader: async ({ params }) => {
+	// Not awaited: the page shows at once, with skeletons until the data comes.
+	loader: ({ params }) => {
 		if (!z.uuid().safeParse(params.programId).success) {
 			throw notFound();
 		}
 		const data = { programId: params.programId };
-		const [quota, notifications] = await Promise.all([
-			getNotificationQuota({ data }),
-			listNotifications({ data }),
-		]);
-		return { quota, notifications };
+		return {
+			quota: getNotificationQuota({ data }),
+			notifications: listNotifications({ data }),
+		};
 	},
 	component: NotificationsPage,
 });
@@ -60,38 +65,51 @@ function NotificationsPage() {
 						to Apple Wallet or Google Wallet get a notification.
 					</p>
 				</div>
-				{quota.monthlyCap === 0 ? (
-					<FormAlert>
-						Messages are turned off on this Loylo installation.
-					</FormAlert>
-				) : (
-					<>
-						<QuotaSummary quota={quota} />
-						{walletSync === "failed" ? (
-							<SyncFailedNotice
-								programId={program.id}
-								onRetried={setWalletSync}
-							/>
-						) : null}
-						<NotificationForm
-							program={program}
-							disabled={quota.availableAt !== null}
-							onSend={async (message) => {
-								setWalletSync(null);
-								const result = await sendNotificationFn({
-									data: { programId: program.id, message },
-								});
-								await router.invalidate({ sync: true });
-								setWalletSync(result.walletSync);
-								toast.add({
-									type: "success",
-									title: "Message sent.",
-									description: "Customers with the card will see it shortly.",
-								});
-							}}
-						/>
-					</>
-				)}
+				<Await
+					promise={quota}
+					fallback={
+						<>
+							<QuotaSummarySkeleton />
+							<NotificationFormSkeleton program={program} />
+						</>
+					}
+				>
+					{(quota) =>
+						quota.monthlyCap === 0 ? (
+							<FormAlert>
+								Messages are turned off on this Loylo installation.
+							</FormAlert>
+						) : (
+							<>
+								<QuotaSummary quota={quota} />
+								{walletSync === "failed" ? (
+									<SyncFailedNotice
+										programId={program.id}
+										onRetried={setWalletSync}
+									/>
+								) : null}
+								<NotificationForm
+									program={program}
+									disabled={quota.availableAt !== null}
+									onSend={async (message) => {
+										setWalletSync(null);
+										const result = await sendNotificationFn({
+											data: { programId: program.id, message },
+										});
+										await router.invalidate({ sync: true });
+										setWalletSync(result.walletSync);
+										toast.add({
+											type: "success",
+											title: "Message sent.",
+											description:
+												"Customers with the card will see it shortly.",
+										});
+									}}
+								/>
+							</>
+						)
+					}
+				</Await>
 			</section>
 			<History notifications={notifications} />
 		</div>
@@ -159,10 +177,40 @@ function SyncFailedNotice({
 	);
 }
 
-function History({ notifications }: { notifications: NotificationView[] }) {
+/** `QuotaSummary` while the sending rules load. */
+function QuotaSummarySkeleton() {
+	return (
+		<div
+			aria-hidden
+			className="flex flex-col gap-1 rounded-2xl bg-muted px-4 py-3 text-sm"
+		>
+			<SkeletonText className="w-80 max-w-full" />
+		</div>
+	);
+}
+
+function History({
+	notifications,
+}: {
+	notifications: Promise<NotificationView[]>;
+}) {
 	return (
 		<aside className="flex flex-col gap-3">
 			<h3 className="font-semibold">Sent messages</h3>
+			<Await promise={notifications} fallback={<SentMessagesSkeleton />}>
+				{(notifications) => <SentMessages notifications={notifications} />}
+			</Await>
+		</aside>
+	);
+}
+
+function SentMessages({
+	notifications,
+}: {
+	notifications: NotificationView[];
+}) {
+	return (
+		<>
 			{notifications.length === 0 ? (
 				<p className="text-muted-foreground text-sm">No message sent yet.</p>
 			) : (
@@ -180,6 +228,24 @@ function History({ notifications }: { notifications: NotificationView[] }) {
 					))}
 				</ul>
 			)}
-		</aside>
+		</>
+	);
+}
+
+/** `SentMessages` while they load. */
+function SentMessagesSkeleton() {
+	return (
+		<ul aria-hidden className="divide-y rounded-2xl border">
+			{Array.from({ length: 3 }, (_, index) => (
+				<li
+					// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+					key={index}
+					className="flex flex-col gap-1 px-4 py-3"
+				>
+					<SkeletonText className="w-full text-sm" />
+					<SkeletonText className="w-36 text-xs" />
+				</li>
+			))}
+		</ul>
 	);
 }

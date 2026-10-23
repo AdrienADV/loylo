@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 
 import { WalletStateBadge } from "#/features/members/components/wallet-state-badge";
 import type { MemberListItem } from "#/features/members/members.server";
+import { SkeletonText } from "@/components/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function MemberList({
 	programId,
@@ -37,6 +39,36 @@ export function MemberList({
 							<span className="text-muted-foreground text-xs">points</span>
 						</span>
 					</Link>
+				</li>
+			))}
+		</ul>
+	);
+}
+
+/** `MemberList` while the members load. */
+export function MemberListSkeleton({ rows = 5 }: { rows?: number }) {
+	return (
+		<ul
+			aria-hidden
+			className="divide-y overflow-hidden rounded-2xl border bg-surface"
+		>
+			{Array.from({ length: rows }, (_, index) => (
+				<li
+					// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+					key={index}
+					className="flex items-center justify-between gap-4 px-4 py-3"
+				>
+					<div className="flex min-w-0 flex-col gap-1">
+						<SkeletonText className="w-32" />
+						<SkeletonText className="w-48 text-sm" />
+						<span className="flex flex-wrap gap-1.5">
+							<Skeleton className="h-5 w-36 rounded-full" />
+						</span>
+					</div>
+					<span className="flex shrink-0 flex-col items-end">
+						<SkeletonText className="w-8 text-lg" />
+						<span className="text-muted-foreground text-xs">points</span>
+					</span>
 				</li>
 			))}
 		</ul>

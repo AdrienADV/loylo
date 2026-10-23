@@ -19,6 +19,8 @@ import { Route as GuestForgotPasswordRouteImport } from './routes/_guest/forgot-
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestSignupRouteImport } from './routes/_guest/signup'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
 import { Route as JoinProgramIdRouteImport } from './routes/join/$programId'
 import { Route as AuthedProgramsProgramIdRouteImport } from './routes/_authed/programs/$programId'
@@ -85,6 +87,16 @@ const GuestSignupRoute = GuestSignupRouteImport.update({
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -209,8 +221,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof GuestLoginRoute
   '/signup': typeof GuestSignupRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/join/$programId': typeof JoinProgramIdRoute
+  '/blog/': typeof BlogIndexRoute
   '/programs/$programId': typeof AuthedProgramsProgramIdRouteWithChildren
   '/programs/new': typeof AuthedProgramsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -238,8 +252,10 @@ export interface FileRoutesByTo {
   '/login': typeof GuestLoginRoute
   '/signup': typeof GuestSignupRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/join/$programId': typeof JoinProgramIdRoute
+  '/blog': typeof BlogIndexRoute
   '/programs/new': typeof AuthedProgramsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/programs/$programId/notifications': typeof AuthedProgramsProgramIdNotificationsRoute
@@ -269,8 +285,10 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/signup': typeof GuestSignupRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/join/$programId': typeof JoinProgramIdRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authed/programs/$programId': typeof AuthedProgramsProgramIdRouteWithChildren
   '/_authed/programs/new': typeof AuthedProgramsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -300,8 +318,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/auth/confirm'
+    | '/blog/$slug'
     | '/invite/$token'
     | '/join/$programId'
+    | '/blog/'
     | '/programs/$programId'
     | '/programs/new'
     | '/api/google/callback'
@@ -329,8 +349,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/auth/confirm'
+    | '/blog/$slug'
     | '/invite/$token'
     | '/join/$programId'
+    | '/blog'
     | '/programs/new'
     | '/api/google/callback'
     | '/programs/$programId/notifications'
@@ -359,8 +381,10 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_guest/signup'
     | '/auth/confirm'
+    | '/blog/$slug'
     | '/invite/$token'
     | '/join/$programId'
+    | '/blog/'
     | '/_authed/programs/$programId'
     | '/_authed/programs/new'
     | '/api/google/callback'
@@ -385,8 +409,10 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   GuestRoute: typeof GuestRouteWithChildren
   AuthConfirmRoute: typeof AuthConfirmRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
   JoinProgramIdRoute: typeof JoinProgramIdRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
   ApiApplePassesSerialNumberRoute: typeof ApiApplePassesSerialNumberRoute
   ApiAppleV1LogRoute: typeof ApiAppleV1LogRoute
@@ -466,6 +492,20 @@ declare module '@tanstack/react-router' {
       path: '/auth/confirm'
       fullPath: '/auth/confirm'
       preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -673,8 +713,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   GuestRoute: GuestRouteWithChildren,
   AuthConfirmRoute: AuthConfirmRoute,
+  BlogSlugRoute: BlogSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
   JoinProgramIdRoute: JoinProgramIdRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
   ApiApplePassesSerialNumberRoute: ApiApplePassesSerialNumberRoute,
   ApiAppleV1LogRoute: ApiAppleV1LogRoute,

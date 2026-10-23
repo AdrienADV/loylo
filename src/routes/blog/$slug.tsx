@@ -89,6 +89,23 @@ const components = {
 	a: (props) => (
 		<a {...props} className="underline underline-offset-4 hover:opacity-80" />
 	),
+	table: (props) => (
+		<div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+			<table {...props} className="w-full min-w-[36rem] text-left text-sm" />
+		</div>
+	),
+	th: (props) => (
+		<th
+			{...props}
+			className="border-border border-b px-3 py-2 align-bottom font-medium text-muted-foreground first:pl-0"
+		/>
+	),
+	td: (props) => (
+		<td
+			{...props}
+			className="border-border/60 border-b px-3 py-2.5 align-top first:pl-0 first:font-medium"
+		/>
+	),
 	blockquote: (props) => (
 		<blockquote
 			{...props}

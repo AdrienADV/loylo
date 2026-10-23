@@ -1,4 +1,13 @@
 import {
+	type RemixiconComponentType,
+	RiAddLine,
+	RiBankCardLine,
+	RiDeleteBin6Line,
+	RiGift2Line,
+	RiSparkling2Line,
+	RiWallet3Line,
+} from "@remixicon/react";
+import {
 	createFileRoute,
 	Link,
 	notFound,
@@ -9,8 +18,8 @@ import { useState } from "react";
 import { z } from "zod";
 import { PointsForm } from "#/features/members/components/points-form";
 import {
-	INSTALL_STATE_LABELS,
 	WALLET_NAMES,
+	WalletStateBadge,
 } from "#/features/members/components/wallet-state-badge";
 import {
 	adjustPoints,
@@ -18,6 +27,7 @@ import {
 	listTransactions,
 	retryWalletSync,
 } from "#/features/members/members.functions";
+import type { WalletProvider } from "#/features/members/members.schemas";
 import type {
 	MemberPassView,
 	TransactionView,
@@ -68,31 +78,33 @@ function MemberPage() {
 
 	return (
 		<div className="flex flex-col gap-8">
-			<div className="flex flex-wrap items-start justify-between gap-4">
-				<div className="flex min-w-0 flex-col gap-1">
-					<Link
-						to="/programs/$programId"
-						params={{ programId }}
-						className="text-muted-foreground text-sm"
-					>
-						← Members
-					</Link>
-					<h2 className="truncate font-semibold text-xl">{member.name}</h2>
-					<p className="truncate text-muted-foreground text-sm">
-						{member.email} · Member since{" "}
-						<FormattedDate value={member.createdAt} />
-					</p>
-				</div>
+			<div className="flex min-w-0 flex-col gap-1">
 				<Link
-					to="/programs/$programId/scan"
+					to="/programs/$programId"
 					params={{ programId }}
-					className={buttonVariants({ variant: "outline" })}
+					className="text-muted-foreground text-sm"
 				>
-					Scan another card
+					← Members
 				</Link>
+				<h2 className="truncate font-semibold text-xl">{member.name}</h2>
+				<p className="truncate text-muted-foreground text-sm">
+					{member.email} · Member since{" "}
+					<FormattedDate value={member.createdAt} />
+				</p>
+				{member.wallets.length > 0 ? (
+					<div className="mt-1 flex flex-wrap gap-1.5">
+						{member.wallets.map((wallet) => (
+							<WalletStateBadge
+								key={wallet.provider}
+								provider={wallet.provider}
+								state={wallet.state}
+							/>
+						))}
+					</div>
+				) : null}
 			</div>
 
-			<section className="flex max-w-md flex-col gap-4">
+			<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
 				<div>
 					<div className="text-muted-foreground text-sm">Balance</div>
 					<div className="font-semibold text-4xl tabular-nums">
@@ -129,30 +141,14 @@ function MemberPage() {
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<div className="flex flex-wrap items-baseline justify-between gap-2">
-					<h3 className="font-semibold">Cards</h3>
-					<Link
-						to="/programs/$programId/members/new"
-						params={{ programId }}
-						className="text-muted-foreground text-sm underline-offset-4 hover:underline"
-					>
-						Issue a new card
-					</Link>
-				</div>
-				<ul className="divide-y rounded-2xl border">
-					{member.passes.map((pass) => (
-						<PassRow key={pass.id} pass={pass} />
-					))}
-				</ul>
-			</section>
-
-			<section className="flex flex-col gap-3">
 				<h3 className="font-semibold">History</h3>
 				<History
 					programId={programId}
 					memberId={member.id}
+					passes={member.passes}
 					transactions={history.transactions}
 					nextBefore={history.nextBefore}
+					until={history.until}
 				/>
 			</section>
 		</div>
@@ -198,79 +194,150 @@ function SyncFailedNotice({
 	);
 }
 
-function PassRow({ pass }: { pass: MemberPassView }) {
-	return (
-		<li className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm">
-			<span className="font-medium">{WALLET_NAMES[pass.provider]}</span>
-			<span className="text-muted-foreground">
-				{INSTALL_STATE_LABELS[pass.state]}
-				{pass.stateChangedAt ? (
-					<>
-						{pass.state === "removed" ? " on " : " since "}
-						<FormattedDate value={pass.stateChangedAt} />
-					</>
-				) : null}
-				{" · Issued "}
-				<FormattedDate value={pass.issuedAt} />
-			</span>
-		</li>
-	);
+type HistoryEntry =
+	| { kind: "transaction"; at: string; transaction: TransactionView }
+	| {
+			kind: "pass";
+			at: string;
+			event: "issued" | "installed" | "removed";
+			provider: WalletProvider;
+			key: string;
+	  };
+
+/** What happened to the member's wallet cards, as history entries. */
+function passEntries(passes: MemberPassView[]): HistoryEntry[] {
+	return passes.flatMap((pass) => {
+		const events = [
+			{ event: "issued", at: pass.issuedAt },
+			{ event: "installed", at: pass.installedAt },
+			{ event: "removed", at: pass.removedAt },
+		] as const;
+		return events.flatMap(({ event, at }) =>
+			at
+				? [
+						{
+							kind: "pass" as const,
+							at,
+							event,
+							provider: pass.provider,
+							key: `${pass.id}-${event}`,
+						},
+					]
+				: [],
+		);
+	});
 }
 
-function transactionLabel(transaction: TransactionView): string {
-	if (transaction.kind === "welcome") {
-		return "Welcome points";
+/**
+ * The page's point changes, with the card events from the same period: from
+ * its oldest change (or the beginning, on the last page) up to `until`.
+ */
+function historyEntries(
+	passes: MemberPassView[],
+	transactions: TransactionView[],
+	nextBefore: number | null,
+	until: string | null,
+): HistoryEntry[] {
+	const oldest = transactions.at(-1)?.createdAt;
+	const from = nextBefore && oldest ? Date.parse(oldest) : -Infinity;
+	const to = until ? Date.parse(until) : Infinity;
+	const cardEvents = passEntries(passes).filter((entry) => {
+		const at = Date.parse(entry.at);
+		return at >= from && at < to;
+	});
+	return [
+		...transactions.map((transaction) => ({
+			kind: "transaction" as const,
+			at: transaction.createdAt,
+			transaction,
+		})),
+		...cardEvents,
+	].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+}
+
+interface EntryLook {
+	label: string;
+	icon: RemixiconComponentType;
+	/** Classes of the round icon badge. */
+	tint: string;
+}
+
+function entryLook(entry: HistoryEntry): EntryLook {
+	if (entry.kind === "pass") {
+		const wallet = WALLET_NAMES[entry.provider];
+		switch (entry.event) {
+			case "issued":
+				return {
+					label: `${wallet} card issued`,
+					icon: RiBankCardLine,
+					tint: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+				};
+			case "installed":
+				return {
+					label: `Added to ${wallet}`,
+					icon: RiWallet3Line,
+					tint: "bg-success/15 text-success",
+				};
+			case "removed":
+				return {
+					label: `Removed from ${wallet}`,
+					icon: RiDeleteBin6Line,
+					tint: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+				};
+		}
 	}
-	return transaction.delta > 0 ? "Points added" : "Points redeemed";
+	if (entry.transaction.kind === "welcome") {
+		return {
+			label: "Welcome points",
+			icon: RiSparkling2Line,
+			tint: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+		};
+	}
+	return entry.transaction.delta > 0
+		? {
+				label: "Points added",
+				icon: RiAddLine,
+				tint: "bg-success/15 text-success",
+			}
+		: {
+				label: "Points redeemed",
+				icon: RiGift2Line,
+				tint: "bg-destructive/10 text-destructive",
+			};
 }
 
 function History({
 	programId,
 	memberId,
+	passes,
 	transactions,
 	nextBefore,
+	until,
 }: {
 	programId: string;
 	memberId: string;
+	passes: MemberPassView[];
 	transactions: TransactionView[];
 	nextBefore: number | null;
+	until: string | null;
 }) {
 	const { before } = Route.useSearch();
+	const entries = historyEntries(passes, transactions, nextBefore, until);
 
-	if (transactions.length === 0) {
-		return <p className="text-muted-foreground text-sm">No points yet.</p>;
+	if (entries.length === 0) {
+		return <p className="text-muted-foreground text-sm">No activity yet.</p>;
 	}
 
 	return (
 		<div className="flex flex-col gap-3">
-			<ul className="divide-y rounded-2xl border">
-				{transactions.map((transaction) => (
-					<li
-						key={transaction.id}
-						className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-					>
-						<span className="flex flex-col">
-							<span>{transactionLabel(transaction)}</span>
-							<span className="text-muted-foreground text-xs">
-								<FormattedDate value={transaction.createdAt} withTime />
-							</span>
-						</span>
-						<span className="flex flex-col items-end tabular-nums">
-							<span
-								className={cn(
-									"font-medium",
-									transaction.delta < 0 && "text-destructive",
-								)}
-							>
-								{transaction.delta > 0
-									? `+${transaction.delta}`
-									: `−${-transaction.delta}`}
-							</span>
-							<span className="text-muted-foreground text-xs">
-								Balance {transaction.balanceAfter}
-							</span>
-						</span>
-					</li>
+			<ul className="divide-y overflow-hidden rounded-2xl border bg-surface">
+				{entries.map((entry) => (
+					<HistoryRow
+						key={
+							entry.kind === "pass" ? entry.key : `t-${entry.transaction.id}`
+						}
+						entry={entry}
+					/>
 				))}
 			</ul>
 			{before || nextBefore ? (
@@ -299,5 +366,49 @@ function History({
 				</nav>
 			) : null}
 		</div>
+	);
+}
+
+function HistoryRow({ entry }: { entry: HistoryEntry }) {
+	const { label, icon: Icon, tint } = entryLook(entry);
+	const transaction = entry.kind === "transaction" ? entry.transaction : null;
+
+	return (
+		<li className="flex items-center gap-3 px-4 py-3 text-sm">
+			<span
+				aria-hidden
+				className={cn(
+					"flex size-9 shrink-0 items-center justify-center rounded-full",
+					tint,
+				)}
+			>
+				<Icon className="size-4" />
+			</span>
+			<span className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate font-medium">{label}</span>
+				<span className="text-muted-foreground text-xs">
+					<FormattedDate value={entry.at} withTime />
+				</span>
+			</span>
+			{transaction ? (
+				<span className="flex flex-col items-end tabular-nums">
+					<span
+						className={cn(
+							"rounded-full px-2 py-0.5 font-semibold",
+							transaction.delta > 0
+								? "bg-success/10 text-success"
+								: "bg-destructive/10 text-destructive",
+						)}
+					>
+						{transaction.delta > 0
+							? `+${transaction.delta}`
+							: `−${-transaction.delta}`}
+					</span>
+					<span className="mt-0.5 text-muted-foreground text-xs">
+						Balance {transaction.balanceAfter}
+					</span>
+				</span>
+			) : null}
+		</li>
 	);
 }

@@ -101,8 +101,10 @@ export interface MemberPassView {
 	provider: WalletProvider;
 	state: PassInstallState;
 	issuedAt: string;
-	/** When the pass was last added to a wallet, or removed from it. */
-	stateChangedAt: string | null;
+	/** When the pass was added to a wallet. */
+	installedAt: string | null;
+	/** When the pass was removed from every wallet that held it. */
+	removedAt: string | null;
 }
 
 export interface MemberView {
@@ -112,6 +114,8 @@ export interface MemberView {
 	points: number;
 	createdAt: string;
 	passes: MemberPassView[];
+	/** One state per wallet, as in the member list. */
+	wallets: WalletState[];
 }
 
 export function toMemberView(
@@ -131,8 +135,10 @@ export function toMemberView(
 			provider: pass.provider,
 			state: passInstallState(pass),
 			issuedAt: pass.created_at,
-			stateChangedAt: pass.uninstalled_at ?? pass.installed_at,
+			installedAt: pass.installed_at,
+			removedAt: pass.uninstalled_at,
 		})),
+		wallets: walletStates(row.wallet_passes),
 	};
 }
 

@@ -3,7 +3,7 @@ import {
 	WALLET_PROVIDERS,
 	type WalletProvider,
 } from "#/features/members/members.schemas";
-import type { Tables } from "#/lib/supabase/database.types";
+import type { Database, Tables } from "#/lib/supabase/database.types";
 
 /** What the merchant's pages receive about members, their passes and points. */
 
@@ -159,5 +159,30 @@ export function toTransactionView(row: TransactionRow): TransactionView {
 		delta: row.delta,
 		balanceAfter: row.balance_after,
 		createdAt: row.created_at,
+	};
+}
+
+type ProgramStatsRow =
+	Database["public"]["Functions"]["program_stats"]["Returns"][number];
+
+export interface ProgramStats {
+	members: number;
+	/** Members who joined in the last 30 days. */
+	newMembers: number;
+	/** Members with at least one pass installed in a wallet. */
+	membersInWallet: number;
+	/** Point additions in the last 30 days: roughly, rewarded visits. */
+	pointAdditions: number;
+	/** Point redemptions in the last 30 days. */
+	redemptions: number;
+}
+
+export function toProgramStats(row: ProgramStatsRow): ProgramStats {
+	return {
+		members: row.members,
+		newMembers: row.new_members,
+		membersInWallet: row.members_in_wallet,
+		pointAdditions: row.point_additions,
+		redemptions: row.redemptions,
 	};
 }

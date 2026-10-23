@@ -1,13 +1,20 @@
 import {
 	createFileRoute,
-	Link,
 	Outlet,
 	redirect,
 	useNavigate,
+	useParams,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUser, signOut } from "#/features/auth/auth.functions";
-import { Button } from "@/components/ui/button";
+import { listPrograms } from "#/features/programs/programs.functions";
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+	SidebarInset,
+	SidebarProvider,
+	SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 /**
  * Pages for signed-in merchants. This guard only decides what the browser
@@ -21,13 +28,21 @@ export const Route = createFileRoute("/_authed")({
 		}
 		return { user };
 	},
+	// The sidebar lists every program to switch between them.
+	loader: () => listPrograms(),
 	component: AuthedLayout,
 });
 
 function AuthedLayout() {
 	const { user } = Route.useRouteContext();
+	const programs = Route.useLoaderData();
+	const { programId } = useParams({ strict: false });
 	const navigate = useNavigate();
 	const signOutFn = useServerFn(signOut);
+
+	// Outside a program's pages, the sidebar focuses on the newest program.
+	const activeProgram =
+		programs.find((program) => program.id === programId) ?? programs[0];
 
 	async function handleSignOut() {
 		await signOutFn();
@@ -35,26 +50,23 @@ function AuthedLayout() {
 	}
 
 	return (
-		<div className="min-h-svh">
-			<header className="flex items-center justify-between gap-4 border-b px-6 py-3">
-				<Link to="/dashboard" className="font-semibold">
-					Loylo
-				</Link>
-				<div className="flex items-center gap-3 text-sm">
-					<Link
-						to="/account"
-						className="text-muted-foreground hover:text-foreground"
-					>
-						{user.email}
-					</Link>
-					<Button variant="outline" size="sm" onClick={handleSignOut}>
-						Sign out
-					</Button>
-				</div>
-			</header>
-			<main className="mx-auto max-w-5xl p-6">
-				<Outlet />
-			</main>
-		</div>
+		<TooltipProvider>
+			<SidebarProvider>
+				<AppSidebar
+					programs={programs}
+					activeProgram={activeProgram}
+					email={user.email}
+					onSignOut={handleSignOut}
+				/>
+				<SidebarInset>
+					<header className="flex h-12 shrink-0 items-center gap-2 px-4">
+						<SidebarTrigger className="-ml-1" />
+					</header>
+					<main className="mx-auto w-full max-w-5xl p-6 pt-2">
+						<Outlet />
+					</main>
+				</SidebarInset>
+			</SidebarProvider>
+		</TooltipProvider>
 	);
 }

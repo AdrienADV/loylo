@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { TeamMemberView } from "#/features/team/team.server";
 import { FormAlert } from "@/components/form-alert";
 import { FormattedDate } from "@/components/formatted-date";
+import { SkeletonText } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 
 const ROLE_LABELS: Record<TeamMemberView["role"], string> = {
@@ -122,5 +123,25 @@ function TeamMemberRow({
 			</div>
 			<FormAlert>{error}</FormAlert>
 		</li>
+	);
+}
+
+/** `TeamMemberList` while the team loads. */
+export function TeamMemberListSkeleton({ rows = 2 }: { rows?: number }) {
+	return (
+		<ul aria-hidden className="divide-y overflow-hidden rounded-2xl border">
+			{Array.from({ length: rows }, (_, index) => (
+				<li
+					// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+					key={index}
+					className="flex flex-col gap-2 px-4 py-3"
+				>
+					<div className="flex min-w-0 flex-col gap-1">
+						<SkeletonText className="w-56 max-w-full" />
+						<SkeletonText className="w-40 text-sm" />
+					</div>
+				</li>
+			))}
+		</ul>
 	);
 }

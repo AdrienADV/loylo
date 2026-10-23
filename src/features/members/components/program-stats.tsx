@@ -1,4 +1,6 @@
 import type { ProgramStats as Stats } from "#/features/members/members.server";
+import { SkeletonText } from "@/components/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /** How a number reads for the merchant: good news, a warning, or neither. */
@@ -94,6 +96,33 @@ function StatTile({
 			>
 				{detail}
 			</dd>
+		</div>
+	);
+}
+
+const STAT_LABELS = [
+	"Members",
+	"Cards in a wallet",
+	"Visits",
+	"Rewards redeemed",
+];
+
+/** `ProgramStats` while the numbers load. */
+export function ProgramStatsSkeleton() {
+	return (
+		<div aria-hidden className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+			{STAT_LABELS.map((label) => (
+				<div
+					key={label}
+					className="flex min-w-0 flex-col items-start gap-1 rounded-2xl border bg-surface px-4 py-3"
+				>
+					<span className="max-w-full truncate text-muted-foreground text-sm">
+						{label}
+					</span>
+					<SkeletonText className="w-12 text-2xl" />
+					<Skeleton className="h-5 w-32 max-w-full rounded-full" />
+				</div>
+			))}
 		</div>
 	);
 }

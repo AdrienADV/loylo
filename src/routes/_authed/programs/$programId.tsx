@@ -4,11 +4,16 @@ import { z } from "zod";
 import { getProgram } from "#/features/programs/programs.functions";
 
 export const Route = createFileRoute("/_authed/programs/$programId")({
-	loader: ({ params }) => {
+	loader: async ({ params, parentMatchPromise }) => {
 		if (!z.uuid().safeParse(params.programId).success) {
 			throw notFound();
 		}
-		return getProgram({ data: { programId: params.programId } });
+		// The sidebar loaded every program already: no request on the way in.
+		const { loaderData: programs } = await parentMatchPromise;
+		return (
+			programs?.find((program) => program.id === params.programId) ??
+			getProgram({ data: { programId: params.programId } })
+		);
 	},
 	component: ProgramLayout,
 	notFoundComponent: () => (

@@ -17,6 +17,7 @@ import { z } from "zod";
 import { ARTICLES, formatArticleDate } from "#/features/blog/articles";
 import { NotificationPreview } from "#/features/notifications/components/notification-preview";
 import { PassPreview } from "#/features/programs/components/pass-preview";
+import { Pricing } from "#/features/site/components/pricing";
 import {
 	DISPLAY_HEADING,
 	Eyebrow,
@@ -148,6 +149,11 @@ const COMPARISON = {
 
 const FAQ = [
 	{
+		question: "How much does it cost?",
+		answer:
+			"You can start for free, up to 100 customers. Pro is €15 a month (€12 billed yearly) with unlimited customers and messages on the card; Multi-shop is €39 a month for up to 5 cards. No fee per customer or per visit.",
+	},
+	{
 		question: "Do my customers need to download an app?",
 		answer:
 			"No. The card goes into Apple Wallet on iPhone or Google Wallet on Android, the apps already on their phone. They only type their name and email.",
@@ -200,6 +206,7 @@ function Home() {
 				<Features />
 				<Businesses />
 				<Comparison />
+				<Pricing />
 				<Questions />
 				<LatestArticles />
 				<FinalCall />
@@ -496,7 +503,7 @@ function Questions() {
 	return (
 		<section
 			id="faq"
-			className={`${SECTION} grid scroll-mt-20 gap-12 pt-8 pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]`}
+			className={`${SECTION} grid scroll-mt-20 gap-12 py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]`}
 		>
 			<SectionHeading
 				eyebrow="FAQ"

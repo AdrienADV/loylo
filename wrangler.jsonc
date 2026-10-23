@@ -4,6 +4,9 @@
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  // Keeps the variables set in the Cloudflare dashboard on deploy, so their
+  // values stay out of the repo.
+  "keep_vars": true,
   "ratelimits": [
     // Limits auth attempts per client IP (sign in, sign up, password reset).
     {

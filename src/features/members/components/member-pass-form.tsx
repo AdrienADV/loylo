@@ -8,8 +8,10 @@ import {
 import { useSchemaForm } from "#/lib/forms";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
+import { SkeletonButton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
-import { FieldGroup } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Name and email of the customer, with one submit button per available
@@ -78,5 +80,32 @@ export function MemberPassForm({
 				</div>
 			</FieldGroup>
 		</form>
+	);
+}
+
+/** `MemberPassForm` while the available wallets load: both, most often. */
+export function MemberPassFormSkeleton({
+	submitLabels,
+}: {
+	submitLabels: Record<WalletProvider, string>;
+}) {
+	return (
+		<div aria-hidden>
+			<FieldGroup>
+				{["First name", "Last name", "Email"].map((label) => (
+					<Field key={label}>
+						<FieldLabel>{label}</FieldLabel>
+						<Skeleton className="h-9 rounded-3xl" />
+					</Field>
+				))}
+				<div className="flex flex-col gap-2">
+					{WALLET_PROVIDERS.map((provider) => (
+						<SkeletonButton key={provider}>
+							{submitLabels[provider]}
+						</SkeletonButton>
+					))}
+				</div>
+			</FieldGroup>
+		</div>
 	);
 }

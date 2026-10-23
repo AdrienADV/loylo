@@ -8,6 +8,7 @@ import {
 	RiWallet3Line,
 } from "@remixicon/react";
 import {
+	Await,
 	createFileRoute,
 	Link,
 	notFound,
@@ -16,7 +17,10 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { z } from "zod";
-import { PointsForm } from "#/features/members/components/points-form";
+import {
+	PointsForm,
+	PointsFormSkeleton,
+} from "#/features/members/components/points-form";
 import { WALLET_NAMES } from "#/features/members/components/wallet-state-badge";
 import {
 	adjustPoints,
@@ -27,13 +31,16 @@ import {
 import type { WalletProvider } from "#/features/members/members.schemas";
 import type {
 	MemberPassView,
+	MemberView,
 	TransactionView,
 	WalletState,
 } from "#/features/members/members.server";
 import type { WalletSyncResult } from "#/features/wallet-sync/wallet-sync";
 import { FormAlert } from "@/components/form-alert";
 import { FormattedDate } from "@/components/formatted-date";
+import { SkeletonText } from "@/components/skeletons";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
@@ -45,20 +52,25 @@ export const Route = createFileRoute(
 		before: z.int().positive().optional().catch(undefined),
 	}),
 	loaderDeps: ({ search }) => ({ before: search.before }),
-	loader: async ({ params, deps }) => {
+	// Not awaited: the page shows at once, with skeletons until the data comes.
+	loader: ({ params, deps }) => {
 		const ids = z
 			.object({ programId: z.uuid(), memberId: z.uuid() })
 			.safeParse(params);
 		if (!ids.success) {
 			throw notFound();
 		}
-		const [member, history] = await Promise.all([
-			getMember({ data: ids.data }),
-			listTransactions({
-				data: { memberId: ids.data.memberId, before: deps.before },
-			}),
-		]);
-		return { member, history };
+		const member = getMember({ data: ids.data });
+		const transactions = listTransactions({
+			data: { memberId: ids.data.memberId, before: deps.before },
+		});
+		return {
+			member,
+			// The history mixes in the card events, which come with the member.
+			history: Promise.all([member, transactions]).then(
+				([{ passes }, page]) => ({ passes, ...page }),
+			),
+		};
 	},
 	component: MemberPage,
 	notFoundComponent: () => (
@@ -67,12 +79,8 @@ export const Route = createFileRoute(
 });
 
 function MemberPage() {
-	const { programId } = Route.useParams();
+	const { programId, memberId } = Route.useParams();
 	const { member, history } = Route.useLoaderData();
-	const router = useRouter();
-	const adjustPointsFn = useServerFn(adjustPoints);
-	/** The member whose wallet cards missed the last points change. */
-	const [syncFailedFor, setSyncFailedFor] = useState<string | null>(null);
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -84,64 +92,119 @@ function MemberPage() {
 				>
 					← Members
 				</Link>
-				<h2 className="truncate font-semibold text-xl">{member.name}</h2>
-				<p className="truncate text-muted-foreground text-sm">
-					{member.email} · Member since{" "}
-					<FormattedDate value={member.createdAt} />
-				</p>
+				<Await
+					promise={member}
+					fallback={
+						<>
+							<SkeletonText className="w-48 text-xl" />
+							<SkeletonText className="w-80 max-w-full text-sm" />
+						</>
+					}
+				>
+					{(member) => (
+						<>
+							<h2 className="truncate font-semibold text-xl">{member.name}</h2>
+							<p className="truncate text-muted-foreground text-sm">
+								{member.email} · Member since{" "}
+								<FormattedDate value={member.createdAt} />
+							</p>
+						</>
+					)}
+				</Await>
 			</div>
 
-			<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
-				<div>
-					<div className="flex items-center justify-between gap-2">
-						<span className="text-muted-foreground text-sm">Balance</span>
-						<WalletStatus wallets={member.wallets} />
-					</div>
-					<div className="font-semibold text-4xl tabular-nums">
-						{member.points}{" "}
-						<span className="font-normal text-base text-muted-foreground">
-							points
-						</span>
-					</div>
-				</div>
-				{syncFailedFor === member.id ? (
-					<SyncFailedNotice
-						memberId={member.id}
-						onRetried={(walletSync) =>
-							setSyncFailedFor(walletSync === "failed" ? member.id : null)
-						}
-					/>
-				) : null}
-				<PointsForm
-					balance={member.points}
-					onSubmit={async ({ points, direction }) => {
-						setSyncFailedFor(null);
-						const result = await adjustPointsFn({
-							data: { memberId: member.id, points, direction },
-						});
-						await router.invalidate({ sync: true });
-						setSyncFailedFor(result.walletSync === "failed" ? member.id : null);
-						toast.add({
-							type: "success",
-							title: `${direction === "add" ? "Added" : "Redeemed"} ${points} points.`,
-							description: `New balance: ${result.points}.`,
-						});
-					}}
-				/>
-			</section>
+			<Await promise={member} fallback={<BalanceSkeleton />}>
+				{(member) => <Balance member={member} />}
+			</Await>
 
 			<section className="flex flex-col gap-3">
 				<h3 className="font-semibold">History</h3>
-				<History
-					programId={programId}
-					memberId={member.id}
-					passes={member.passes}
-					transactions={history.transactions}
-					nextBefore={history.nextBefore}
-					until={history.until}
-				/>
+				<Await promise={history} fallback={<HistorySkeleton />}>
+					{(history) => (
+						<History
+							programId={programId}
+							memberId={memberId}
+							passes={history.passes}
+							transactions={history.transactions}
+							nextBefore={history.nextBefore}
+							until={history.until}
+						/>
+					)}
+				</Await>
 			</section>
 		</div>
+	);
+}
+
+function Balance({ member }: { member: MemberView }) {
+	const router = useRouter();
+	const adjustPointsFn = useServerFn(adjustPoints);
+	/** The member whose wallet cards missed the last points change. */
+	const [syncFailedFor, setSyncFailedFor] = useState<string | null>(null);
+
+	return (
+		<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
+			<div>
+				<div className="flex items-center justify-between gap-2">
+					<span className="text-muted-foreground text-sm">Balance</span>
+					<WalletStatus wallets={member.wallets} />
+				</div>
+				<div className="font-semibold text-4xl tabular-nums">
+					{member.points}{" "}
+					<span className="font-normal text-base text-muted-foreground">
+						points
+					</span>
+				</div>
+			</div>
+			{syncFailedFor === member.id ? (
+				<SyncFailedNotice
+					memberId={member.id}
+					onRetried={(walletSync) =>
+						setSyncFailedFor(walletSync === "failed" ? member.id : null)
+					}
+				/>
+			) : null}
+			<PointsForm
+				balance={member.points}
+				onSubmit={async ({ points, direction }) => {
+					setSyncFailedFor(null);
+					const result = await adjustPointsFn({
+						data: { memberId: member.id, points, direction },
+					});
+					await router.invalidate({ sync: true });
+					setSyncFailedFor(result.walletSync === "failed" ? member.id : null);
+					toast.add({
+						type: "success",
+						title: `${direction === "add" ? "Added" : "Redeemed"} ${points} points.`,
+						description: `New balance: ${result.points}.`,
+					});
+				}}
+			/>
+		</section>
+	);
+}
+
+/** `Balance` while the member loads. */
+function BalanceSkeleton() {
+	return (
+		<section
+			aria-hidden
+			className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4"
+		>
+			<div>
+				<div className="flex items-center justify-between gap-2">
+					<span className="text-muted-foreground text-sm">Balance</span>
+					<span className="inline-flex animate-pulse items-center gap-1.5 rounded-full bg-foreground/[0.07] px-2.5 py-0.5 font-medium text-transparent text-xs">
+						<span className="size-1.5" />
+						Active
+					</span>
+				</div>
+				<div className="font-semibold text-4xl">
+					<SkeletonText className="w-40" />
+				</div>
+			</div>
+			<PointsFormSkeleton />
+		</section>
 	);
 }
 
@@ -380,6 +443,34 @@ function History({
 				</nav>
 			) : null}
 		</div>
+	);
+}
+
+/** `History` while it loads. */
+function HistorySkeleton() {
+	return (
+		<ul
+			aria-hidden
+			className="divide-y overflow-hidden rounded-2xl border bg-surface"
+		>
+			{Array.from({ length: 5 }, (_, index) => (
+				<li
+					// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+					key={index}
+					className="flex items-center gap-3 px-4 py-3 text-sm"
+				>
+					<Skeleton className="size-9 shrink-0 rounded-full" />
+					<span className="flex min-w-0 flex-1 flex-col">
+						<SkeletonText className="w-32" />
+						<SkeletonText className="w-28 text-xs" />
+					</span>
+					<span className="flex flex-col items-end">
+						<Skeleton className="h-6 w-12 rounded-full" />
+						<SkeletonText className="mt-0.5 w-16 text-xs" />
+					</span>
+				</li>
+			))}
+		</ul>
 	);
 }
 

@@ -6,9 +6,6 @@ customers add it to their phone's wallet, and the card shows their points.
 Built with [TanStack Start](https://tanstack.com/start) on Cloudflare Workers and
 [Supabase](https://supabase.com) (Postgres, Auth, Storage), with the shadcn design system.
 
-> **Status: MVP complete.** It was built in 11 pull requests; [`docs/PLAN.md`](docs/PLAN.md)
-> has the plan, the decisions taken along the way and the known issues.
-
 ## Features
 
 - **Merchant accounts**: sign up with email confirmation, sign in, password reset, and an account
@@ -27,6 +24,8 @@ Built with [TanStack Start](https://tanstack.com/start) on Cloudflare Workers an
   - Apple's PassKit Web Service and Google's callbacks track whether each pass is installed.
   - After a points change, Apple devices get a push and download the updated pass, and Google
     passes get their new balance. Program changes reach every pass the same way.
+- **Team**: a program's admins invite people by email to help run it; invited members manage
+  members and points.
 - **Messages**: merchants send a short message to every card of a program, with a preview. It
   shows on the card and notifies customers; the database allows one message per 24 hours and a
   monthly cap set by the deployment.
@@ -127,13 +126,14 @@ when a pass is saved or deleted.
 | `APNS_KEY_ID`, `APNS_KEY` | Apple pass updates | See step 2 |
 | `GOOGLE_ISSUER_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` | Google Wallet | See step 3 |
 | `NOTIFICATIONS_MONTHLY_CAP` | messages | Messages per program and month: 4 by default, 0 turns them off |
+| `RESEND_API_KEY`, `EMAIL_FROM` | team invitations | Resend API key and sender; without them, admins share invitation links themselves |
 
 To check the deployment: sign up (the confirmation email arrives through your SMTP provider),
 create a program, open its enrollment link on a phone and add the card to a wallet, then scan it
 and add points: the card updates on the phone.
 
 Large programs: messages and program edits push every Apple device from one request, and each
-push counts against the Worker's subrequest limit (see the known issues in the plan).
+push counts against the Worker's subrequest limit.
 
 ## Local development
 
@@ -176,20 +176,18 @@ Wallet limitations in development:
 ## Project layout
 
 - `src/features/` — one folder per feature (`auth`, `account`, `programs`, `members`,
-  `enrollment`, `wallet-services`, `wallet-sync`, `notifications`): Zod schemas, server
+  `enrollment`, `team`, `wallet-services`, `wallet-sync`, `notifications`): Zod schemas, server
   functions, server-only use cases, components.
 - `src/lib/wallet/` — Apple (pass builder, signing, APNs) and Google (API client, objects,
   callback verification) adapters.
 - `src/routes/` — pages and server routes (file-based routing).
 - `supabase/migrations/` — the database schema, with Row Level Security on every table.
 
-The [code map in the plan](docs/PLAN.md#code-map) has more detail.
-
 ## Contributing
 
 Code, comments, commits and pull requests are in English; commits follow
 [Conventional Commits](https://www.conventionalcommits.org). See [`AGENTS.md`](AGENTS.md) for the
-conventions and [`docs/PLAN.md`](docs/PLAN.md) for how each change is verified.
+conventions.
 
 ## License
 

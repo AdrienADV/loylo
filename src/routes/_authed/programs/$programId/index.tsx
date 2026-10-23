@@ -53,29 +53,6 @@ function ProgramOverviewPage() {
 					again from the settings to retry.
 				</FormAlert>
 			) : null}
-			<div className="flex flex-wrap gap-2">
-				<Link
-					to="/programs/$programId/scan"
-					params={{ programId: program.id }}
-					className={buttonVariants()}
-				>
-					Scan a card
-				</Link>
-				<Link
-					to="/programs/$programId/members/new"
-					params={{ programId: program.id }}
-					className={buttonVariants({ variant: "outline" })}
-				>
-					Issue a card
-				</Link>
-				<Link
-					to="/programs/$programId/share"
-					params={{ programId: program.id }}
-					className={buttonVariants({ variant: "outline" })}
-				>
-					Share the enrollment link
-				</Link>
-			</div>
 			<div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
 				<Members />
 				<aside className="flex flex-col gap-3">

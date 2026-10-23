@@ -26,6 +26,14 @@ function ProgramSettingsPage() {
 	const updateProgramFn = useServerFn(updateProgram);
 	const [notice, setNotice] = useState<string | null>(null);
 
+	if (program.role !== "admin") {
+		return (
+			<p className="text-muted-foreground">
+				Only the program's admins can change its settings.
+			</p>
+		);
+	}
+
 	return (
 		<div className="flex flex-col gap-10">
 			<div className="flex flex-col gap-4">

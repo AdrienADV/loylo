@@ -20,7 +20,7 @@ export function FormAlert({
 				"rounded-2xl px-4 py-3 text-sm",
 				tone === "error"
 					? "bg-destructive/10 text-destructive"
-					: "bg-muted text-foreground",
+					: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 			)}
 		>
 			{children}

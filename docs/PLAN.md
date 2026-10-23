@@ -22,6 +22,7 @@ Read this section first when picking up the work in a new session.
 | 9 | `feat/points` | #12 | merged |
 | 10 | `feat/marketing-notifications` | #14 | merged |
 | 11 | `feat/account` | #15 | merged |
+| 12 | `feat/team` | — | in review |
 
 How the owner works: one PR at a time; the owner merges it (even while the Cloudflare build
 is red, see below) and says when to start the next one. Do not start the next PR without the go.
@@ -149,6 +150,45 @@ These refine or override the sections below.
 - **Apple devices without passes are forgotten** by a statement trigger on `apple_registrations`
   (`private.forget_unused_apple_devices`): unregistering, deleting a program and deleting an
   account all go through it. `unregister_apple_device` no longer deletes devices itself.
+- **Program teams** (`program_members`, `program_role` enum `admin | member`): a program's creator
+  is its admin (trigger `programs_add_owner`, existing owners backfilled) and stays in the team.
+  RLS moved from `owner_id = auth.uid()` to team membership through
+  `private.member_program_ids()` / `private.admin_program_ids()` (security definer, evaluated
+  once per statement with `in (select ...)`, executable by `authenticated` only, the `private`
+  schema itself stays unreachable). Every team member reads the program and manages its
+  customers, cards, points and messages; only admins update or delete the program and manage the
+  team. The programs select policy keeps the owner check: an insert's `RETURNING` row is read
+  before the trigger adds the owner to the team. `updateProgram` / `deleteProgram` check the role
+  first (`requireProgramAdmin`). `listPrograms` / `getProgram` return the user's role
+  (`program_members!inner(role)` filtered on `user_id`): the sidebar hides Settings from members.
+- **Invitations** (`program_invitations`): one per program and email (citext), 7-day expiry, at
+  most 20 pending per program (`LY004`). The link `/invite/{token}` (256 random bits) only exists
+  in the invitation email: the table keeps its SHA-256 (`token_hash`, not even readable by admins),
+  so admins cannot copy links and a leaked table leaks none. Team emails live in `auth.users`, so
+  `create_program_invitation` (returns the new token; renews an existing invitation, refuses team
+  members with `LY003`, drops expired ones), `get_program_invitation`,
+  `accept_program_invitation` (the user's confirmed email must be the invited one: `LY005`
+  unknown or expired, `LY006` other email) and `list_program_team` are security definer and
+  server only: the server checks the caller's role with the user client first. Admins read and
+  cancel invitations through RLS (column grants leave `token_hash` out).
+- **Joining signs in without a password**: opening the emailed link proves access to the
+  mailbox, like a magic link. The invitation page's "Join the team" button (a POST, so email
+  scanners that open links do not use invitations up) calls `joinTeam`:
+  `signInWithVerifiedEmail` (`auth.server.ts`) creates a confirmed account if needed
+  (`auth.admin.createUser`, `email_confirm`), generates a magic link token
+  (`auth.admin.generateLink`) and verifies it right away with `verifyOtp`, which sets the session
+  cookies after ending the browser's previous session; then the invitation is accepted and
+  removed. Invited people who never set a password sign in again with "Forgot your password?".
+  Invitation links stay valid 7 days, longer than Supabase's email links (1 hour by default):
+  the email says not to forward it.
+- **Emails through Resend** (`src/lib/email/resend.server.ts`, plain `fetch`, `Idempotency-Key`
+  per invitation and expiry): `getOptionalEmailConfig` (`RESEND_API_KEY` + `EMAIL_FROM`). Without
+  them, the Team page says invitations are unavailable. When sending fails, the invitation exists
+  and "Send again" renews its link and retries. Invitations, their page and joining share
+  `TEAM_RATE_LIMITER` (10/min per IP and action).
+- **Logos stay in the owner's folder**: only the creator is an admin for now, so program images
+  keep the `{owner}/{program}/...` layout. Letting other admins change the logo needs storage
+  policies based on the team.
 
 ### Code map
 
@@ -164,6 +204,8 @@ These refine or override the sections below.
 | `src/features/members/` | member / wallet / points schemas, server functions (`issuePass`, members list, member, scan lookup, points, history), `members.server.ts` (views, install state), `wallet-passes.server.ts` (pass links, `.pkpass` build, Google save link), `MemberPassForm`, `MemberList`, `PointsForm`, `QrScanner`, `WalletStateBadge` |
 | `src/features/wallet-sync/` | `WalletSync` interface and `combineSyncResults` (`wallet-sync.ts`), Apple and Google implementations, `syncMemberWallets`, `syncProgramWallets`, `sendProgramMessageToWallets` |
 | `src/features/account/` | schemas and server functions (`getAccount`, `requestEmailChange`, `changePassword`, `deleteAccount`); `verifyPassword` is in `auth.server.ts`, `removeOwnerImages` in `programs.server.ts` |
+| `src/features/team/` | schemas, `team.server.ts` (role checks, rate limit, invitation email), server functions (`getTeam`, `inviteTeamMember`, `cancelInvitation`, `removeTeamMember`, `getInvitation`, `joinTeam`), `invitation-email.ts` (+ test), `InviteForm`, `TeamMemberList`, `InvitationList` |
+| `src/lib/email/` | `resend.server.ts` (`sendEmail`) |
 | `src/features/notifications/` | message schema, quota view (`toNotificationQuota`), server functions (quota, history, send), `NotificationForm`, `NotificationPreview` |
 | `src/features/enrollment/` | public server functions `getPublicProgram`, `enroll` |
 | `src/lib/` (other) | `rate-limit.server.ts`, `supabase/errors.server.ts` (`databaseError`), `app-origin.ts` (isomorphic origin), `http.ts` |

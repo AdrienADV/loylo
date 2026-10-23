@@ -31,6 +31,15 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 export const PROGRAM_COLUMNS =
 	"id, name, background_color, initial_points, logo_path, wallet_message, created_at" as const;
 
+/**
+ * With the team row of the signed-in user: filter it on
+ * `program_members.user_id`. The inner join leaves out programs without it.
+ */
+export const TEAM_PROGRAM_COLUMNS =
+	`${PROGRAM_COLUMNS}, program_members!inner(role)` as const;
+
+export type ProgramRole = Database["public"]["Enums"]["program_role"];
+
 /** What the browser receives: no storage paths, ready-to-use image URLs. */
 export interface ProgramView {
 	id: string;
@@ -63,6 +72,22 @@ export function toProgramView(
 		walletMessage: row.wallet_message,
 		createdAt: row.created_at,
 	};
+}
+
+/** A program of the signed-in user, with their role in its team. */
+export interface TeamProgramView extends ProgramView {
+	role: ProgramRole;
+}
+
+export function toTeamProgramView(
+	supabase: Supabase,
+	row: ProgramRow & { program_members: { role: ProgramRole }[] },
+): TeamProgramView {
+	const [membership] = row.program_members;
+	if (!membership) {
+		throw new Error(`No team row for program ${row.id}`);
+	}
+	return { ...toProgramView(supabase, row), role: membership.role };
 }
 
 /** PNG dimensions, read from the IHDR chunk, or `null` if not a PNG. */

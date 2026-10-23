@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestRouteImport } from './routes/_guest'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthedAccountRouteImport } from './routes/_authed/account'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedResetPasswordRouteImport } from './routes/_authed/reset-password'
@@ -19,6 +21,8 @@ import { Route as GuestForgotPasswordRouteImport } from './routes/_guest/forgot-
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestSignupRouteImport } from './routes/_guest/signup'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
 import { Route as JoinProgramIdRouteImport } from './routes/join/$programId'
 import { Route as AuthedProgramsProgramIdRouteImport } from './routes/_authed/programs/$programId'
@@ -50,6 +54,16 @@ const AuthedRoute = AuthedRouteImport.update({
 } as any)
 const GuestRoute = GuestRouteImport.update({
   id: '/_guest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedAccountRoute = AuthedAccountRouteImport.update({
@@ -85,6 +99,16 @@ const GuestSignupRoute = GuestSignupRouteImport.update({
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -202,6 +226,8 @@ const ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierSer
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof AuthedAccountRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/reset-password': typeof AuthedResetPasswordRoute
@@ -209,8 +235,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof GuestLoginRoute
   '/signup': typeof GuestSignupRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/join/$programId': typeof JoinProgramIdRoute
+  '/blog/': typeof BlogIndexRoute
   '/programs/$programId': typeof AuthedProgramsProgramIdRouteWithChildren
   '/programs/new': typeof AuthedProgramsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -231,6 +259,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof AuthedAccountRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/reset-password': typeof AuthedResetPasswordRoute
@@ -238,8 +268,10 @@ export interface FileRoutesByTo {
   '/login': typeof GuestLoginRoute
   '/signup': typeof GuestSignupRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/join/$programId': typeof JoinProgramIdRoute
+  '/blog': typeof BlogIndexRoute
   '/programs/new': typeof AuthedProgramsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/programs/$programId/notifications': typeof AuthedProgramsProgramIdNotificationsRoute
@@ -262,6 +294,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authed/account': typeof AuthedAccountRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/reset-password': typeof AuthedResetPasswordRoute
@@ -269,8 +303,10 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/signup': typeof GuestSignupRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/invite/$token': typeof InviteTokenRoute
   '/join/$programId': typeof JoinProgramIdRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authed/programs/$programId': typeof AuthedProgramsProgramIdRouteWithChildren
   '/_authed/programs/new': typeof AuthedProgramsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -293,6 +329,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/account'
     | '/dashboard'
     | '/reset-password'
@@ -300,8 +338,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/auth/confirm'
+    | '/blog/$slug'
     | '/invite/$token'
     | '/join/$programId'
+    | '/blog/'
     | '/programs/$programId'
     | '/programs/new'
     | '/api/google/callback'
@@ -322,6 +362,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/account'
     | '/dashboard'
     | '/reset-password'
@@ -329,8 +371,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/auth/confirm'
+    | '/blog/$slug'
     | '/invite/$token'
     | '/join/$programId'
+    | '/blog'
     | '/programs/new'
     | '/api/google/callback'
     | '/programs/$programId/notifications'
@@ -352,6 +396,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authed'
     | '/_guest'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/_authed/account'
     | '/_authed/dashboard'
     | '/_authed/reset-password'
@@ -359,8 +405,10 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_guest/signup'
     | '/auth/confirm'
+    | '/blog/$slug'
     | '/invite/$token'
     | '/join/$programId'
+    | '/blog/'
     | '/_authed/programs/$programId'
     | '/_authed/programs/new'
     | '/api/google/callback'
@@ -384,9 +432,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   GuestRoute: typeof GuestRouteWithChildren
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   InviteTokenRoute: typeof InviteTokenRoute
   JoinProgramIdRoute: typeof JoinProgramIdRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
   ApiApplePassesSerialNumberRoute: typeof ApiApplePassesSerialNumberRoute
   ApiAppleV1LogRoute: typeof ApiAppleV1LogRoute
@@ -417,6 +469,20 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof GuestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/account': {
@@ -466,6 +532,20 @@ declare module '@tanstack/react-router' {
       path: '/auth/confirm'
       fullPath: '/auth/confirm'
       preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -672,9 +752,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   GuestRoute: GuestRouteWithChildren,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   AuthConfirmRoute: AuthConfirmRoute,
+  BlogSlugRoute: BlogSlugRoute,
   InviteTokenRoute: InviteTokenRoute,
   JoinProgramIdRoute: JoinProgramIdRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
   ApiApplePassesSerialNumberRoute: ApiApplePassesSerialNumberRoute,
   ApiAppleV1LogRoute: ApiAppleV1LogRoute,

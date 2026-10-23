@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/newsreader/opsz.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -23,6 +24,10 @@ body {
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'DM Sans Variable', sans-serif;
+  /* Headlines of the public pages only. */
+  --font-display: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+  --shadow-border: var(--surface-shadow);
+  --shadow-border-hover: var(--surface-shadow-hover);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -100,6 +105,8 @@ body {
   --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   --sidebar-border: oklch(0.923 0.003 48.717);
   --sidebar-ring: oklch(0.709 0.01 56.259);
+  --surface-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06), 0 2px 4px 0 rgb(0 0 0 / 0.04);
+  --surface-shadow-hover: 0 0 0 1px rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08), 0 2px 4px 0 rgb(0 0 0 / 0.06);
 }
 
 .dark {
@@ -136,6 +143,8 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0.001 106.423);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.553 0.013 58.071);
+  --surface-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+  --surface-shadow-hover: 0 0 0 1px rgb(255 255 255 / 0.13);
 }
 
 @layer base {
@@ -150,5 +159,23 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Public pages: content rises into place, one block after the other (--stagger). */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+}
+
+@utility animate-enter {
+  animation: enter 400ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 80ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }

@@ -223,10 +223,6 @@ function Hero() {
 			className={`${SECTION} grid items-center gap-14 pt-16 pb-20 md:pt-24 lg:grid-cols-[minmax(0,1fr)_26rem]`}
 		>
 			<div className="flex animate-enter flex-col items-start gap-6">
-				<span className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1 font-medium text-muted-foreground text-xs shadow-border">
-					<span className="size-1.5 rounded-full bg-success" />
-					For Apple Wallet and Google Wallet
-				</span>
 				<h1
 					className={`${DISPLAY_HEADING} text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-[4.25rem]`}
 				>

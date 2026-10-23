@@ -536,7 +536,7 @@ function LatestArticles() {
 						All articles
 					</Link>
 				</div>
-				<div className="mt-12 grid gap-3 md:grid-cols-3">
+				<div className="mt-12 grid gap-3 md:grid-cols-2">
 					{ARTICLES.slice(0, 3).map((article) => (
 						<Link
 							key={article.slug}

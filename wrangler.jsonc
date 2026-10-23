@@ -16,6 +16,13 @@
       "name": "ENROLLMENT_RATE_LIMITER",
       "namespace_id": "1002",
       "simple": { "limit": 20, "period": 60 }
+    },
+    // Limits team invitations (each one may send an email) and their
+    // acceptance per client IP.
+    {
+      "name": "TEAM_RATE_LIMITER",
+      "namespace_id": "1003",
+      "simple": { "limit": 10, "period": 60 }
     }
   ]
 }

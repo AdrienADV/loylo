@@ -12,7 +12,10 @@ export function getClientIp(): string | undefined {
 }
 
 /** Rate limiter bindings, configured in wrangler.jsonc. */
-export type RateLimiterName = "AUTH_RATE_LIMITER" | "ENROLLMENT_RATE_LIMITER";
+export type RateLimiterName =
+	| "AUTH_RATE_LIMITER"
+	| "ENROLLMENT_RATE_LIMITER"
+	| "TEAM_RATE_LIMITER";
 
 /**
  * Counts one `action` from the visitor's IP. Returns `false` once the

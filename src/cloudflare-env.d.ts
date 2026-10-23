@@ -7,5 +7,6 @@ declare module "cloudflare:workers" {
 	export const env: {
 		AUTH_RATE_LIMITER: RateLimit;
 		ENROLLMENT_RATE_LIMITER: RateLimit;
+		TEAM_RATE_LIMITER: RateLimit;
 	};
 }

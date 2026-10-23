@@ -3,6 +3,7 @@ import { type AuthError, createClient } from "@supabase/supabase-js";
 
 import { getSupabaseAdminConfig } from "#/lib/config.server";
 import { consumeRateLimit, getClientIp } from "#/lib/rate-limit.server";
+import { createAdminClient } from "#/lib/supabase/admin-client.server";
 import { sessionCookies } from "#/lib/supabase/cookies.server";
 import type { Database } from "#/lib/supabase/database.types";
 
@@ -61,6 +62,46 @@ export async function verifyPassword(
 	}
 	await client.auth.signOut({ scope: "local" });
 	return true;
+}
+
+/**
+ * Signs the visitor in as `email`, without a password, creating a confirmed
+ * account when there is none. Only for visitors who proved they read that
+ * mailbox, such as by opening a link that was only sent there. Ends the
+ * browser's previous session first, whoever it belonged to. Returns the
+ * user's ID.
+ */
+export async function signInWithVerifiedEmail(email: string): Promise<string> {
+	const admin = createAdminClient().auth.admin;
+	const { error: createError } = await admin.createUser({
+		email,
+		email_confirm: true,
+	});
+	if (createError && createError.code !== "email_exists") {
+		throw new Error(toAuthErrorMessage(createError));
+	}
+
+	// A one-time magic link token, verified right here instead of emailed.
+	const { data: link, error: linkError } = await admin.generateLink({
+		type: "magiclink",
+		email,
+	});
+	if (linkError) {
+		throw new Error(toAuthErrorMessage(linkError));
+	}
+
+	const client = createAuthClient();
+	await client.auth.signOut({ scope: "local" });
+	const { data, error } = await client.auth.verifyOtp({
+		token_hash: link.properties.hashed_token,
+		type: "magiclink",
+	});
+	if (error || !data.user) {
+		throw new Error(
+			error ? toAuthErrorMessage(error) : "Could not sign you in.",
+		);
+	}
+	return data.user.id;
 }
 
 /** Turns a Supabase Auth error into a message that is safe to show. */

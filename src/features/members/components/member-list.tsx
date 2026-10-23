@@ -11,13 +11,13 @@ export function MemberList({
 	members: MemberListItem[];
 }) {
 	return (
-		<ul className="divide-y overflow-hidden rounded-2xl border">
+		<ul className="divide-y overflow-hidden rounded-2xl border bg-surface">
 			{members.map((member) => (
 				<li key={member.id}>
 					<Link
 						to="/programs/$programId/members/$memberId"
 						params={{ programId, memberId: member.id }}
-						className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/50"
+						className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-foreground/[0.03]"
 					>
 						<div className="flex min-w-0 flex-col gap-1">
 							<span className="truncate font-medium">{member.name}</span>

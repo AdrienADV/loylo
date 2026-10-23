@@ -28,7 +28,7 @@ export function WalletStateBadge({
 	state: PassInstallState;
 }) {
 	return (
-		<span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs">
+		<span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-0.5 text-xs">
 			<span
 				aria-hidden
 				className={cn("size-1.5 rounded-full", DOT_CLASSES[state])}

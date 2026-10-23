@@ -3,12 +3,13 @@ import {
 	RiMessage2Line,
 	RiSettings3Line,
 	RiShareForwardLine,
+	RiTeamLine,
 	RiUserAddLine,
 } from "@remixicon/react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 
 import { ProgramSwitcher } from "#/features/programs/components/program-switcher";
-import type { ProgramView } from "#/features/programs/programs.server";
+import type { TeamProgramView } from "#/features/programs/programs.server";
 import { NavUser } from "@/components/nav-user";
 import {
 	Sidebar,
@@ -30,8 +31,8 @@ export function AppSidebar({
 	email,
 	onSignOut,
 }: {
-	programs: ProgramView[];
-	activeProgram: ProgramView | undefined;
+	programs: TeamProgramView[];
+	activeProgram: TeamProgramView | undefined;
 	email: string;
 	onSignOut: () => void;
 }) {
@@ -41,7 +42,12 @@ export function AppSidebar({
 				<ProgramSwitcher programs={programs} activeProgram={activeProgram} />
 			</SidebarHeader>
 			<SidebarContent>
-				{activeProgram ? <ProgramNav programId={activeProgram.id} /> : null}
+				{activeProgram ? (
+					<ProgramNav
+						programId={activeProgram.id}
+						isAdmin={activeProgram.role === "admin"}
+					/>
+				) : null}
 			</SidebarContent>
 			<SidebarFooter>
 				<NavUser email={email} onSignOut={onSignOut} />
@@ -74,14 +80,26 @@ const programLinks = [
 		icon: RiShareForwardLine,
 	},
 	{
+		title: "Team",
+		to: "/programs/$programId/team",
+		icon: RiTeamLine,
+	},
+	{
 		title: "Settings",
 		to: "/programs/$programId/settings",
 		icon: RiSettings3Line,
+		adminOnly: true,
 	},
 ] as const;
 
 /** The pages of the selected program. */
-function ProgramNav({ programId }: { programId: string }) {
+function ProgramNav({
+	programId,
+	isAdmin,
+}: {
+	programId: string;
+	isAdmin: boolean;
+}) {
 	const matchRoute = useMatchRoute();
 	const params = { programId };
 	// A member's page belongs to the members list.
@@ -95,29 +113,31 @@ function ProgramNav({ programId }: { programId: string }) {
 			<SidebarGroupLabel>Program</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{programLinks.map((link) => {
-						const isActive =
-							Boolean(
-								matchRoute({
-									to: link.to,
-									params,
-									fuzzy: !("exact" in link),
-								}),
-							) ||
-							("exact" in link && onMemberPage);
-						return (
-							<SidebarMenuItem key={link.to}>
-								<SidebarMenuButton
-									tooltip={link.title}
-									isActive={isActive}
-									render={<Link to={link.to} params={params} />}
-								>
-									<link.icon />
-									<span>{link.title}</span>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						);
-					})}
+					{programLinks
+						.filter((link) => isAdmin || !("adminOnly" in link))
+						.map((link) => {
+							const isActive =
+								Boolean(
+									matchRoute({
+										to: link.to,
+										params,
+										fuzzy: !("exact" in link),
+									}),
+								) ||
+								("exact" in link && onMemberPage);
+							return (
+								<SidebarMenuItem key={link.to}>
+									<SidebarMenuButton
+										tooltip={link.title}
+										isActive={isActive}
+										render={<Link to={link.to} params={params} />}
+									>
+										<link.icon />
+										<span>{link.title}</span>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							);
+						})}
 				</SidebarMenu>
 			</SidebarGroupContent>
 		</SidebarGroup>

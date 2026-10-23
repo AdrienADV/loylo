@@ -17,6 +17,12 @@ export const authMiddleware = createMiddleware({ type: "function" }).server(
 		if (!data) {
 			throw redirect({ to: "/login" });
 		}
-		return next({ context: { supabase, userId: data.claims.sub } });
+		return next({
+			context: {
+				supabase,
+				userId: data.claims.sub,
+				userEmail: data.claims.email ?? "",
+			},
+		});
 	},
 );

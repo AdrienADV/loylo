@@ -40,6 +40,7 @@ export function PointsForm({
 					min={1}
 					step={1}
 					autoComplete="off"
+					className="bg-card"
 					error={form.fieldErrors.points}
 				/>
 				<div className="flex flex-wrap gap-2">

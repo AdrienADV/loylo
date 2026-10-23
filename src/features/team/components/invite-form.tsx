@@ -2,8 +2,10 @@ import { invitationFormSchema } from "#/features/team/team.schemas";
 import { useSchemaForm } from "#/lib/forms";
 import { FormAlert } from "@/components/form-alert";
 import { FormField } from "@/components/form-field";
+import { SkeletonButton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
-import { FieldGroup } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Invites someone to the team by email. */
 export function InviteForm({
@@ -32,5 +34,20 @@ export function InviteForm({
 				</Button>
 			</FieldGroup>
 		</form>
+	);
+}
+
+/** `InviteForm` while the team loads. */
+export function InviteFormSkeleton() {
+	return (
+		<div aria-hidden className="max-w-md">
+			<FieldGroup>
+				<Field>
+					<FieldLabel>Email</FieldLabel>
+					<Skeleton className="h-9 rounded-3xl" />
+				</Field>
+				<SkeletonButton className="self-start">Invite</SkeletonButton>
+			</FieldGroup>
+		</div>
 	);
 }

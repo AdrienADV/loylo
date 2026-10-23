@@ -7,8 +7,10 @@ import {
 } from "#/features/notifications/notifications.schemas";
 import { useSchemaForm } from "#/lib/forms";
 import { FormAlert } from "@/components/form-alert";
+import { SkeletonButton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
@@ -96,5 +98,35 @@ export function NotificationForm({
 				</Button>
 			)}
 		</form>
+	);
+}
+
+/** `NotificationForm` while the sending rules load. */
+export function NotificationFormSkeleton({
+	program,
+}: {
+	program: { name: string; backgroundColor: string; logoUrl: string | null };
+}) {
+	return (
+		<div aria-hidden className="flex flex-col gap-4">
+			<Field>
+				<div className="flex items-baseline justify-between gap-2">
+					<FieldLabel>Message</FieldLabel>
+					<span className="text-muted-foreground text-xs tabular-nums">
+						0/{MAX_MESSAGE_LENGTH}
+					</span>
+				</div>
+				<Skeleton className="h-16" />
+			</Field>
+			<NotificationPreview
+				programName={program.name}
+				backgroundColor={program.backgroundColor}
+				logoUrl={program.logoUrl}
+				message=""
+			/>
+			<SkeletonButton className="self-start">
+				Send to all members
+			</SkeletonButton>
+		</div>
 	);
 }

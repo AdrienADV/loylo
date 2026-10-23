@@ -1,4 +1,5 @@
 import {
+	Await,
 	createFileRoute,
 	getRouteApi,
 	Link,
@@ -7,8 +8,14 @@ import {
 } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { z } from "zod";
-import { MemberList } from "#/features/members/components/member-list";
-import { ProgramStats } from "#/features/members/components/program-stats";
+import {
+	MemberList,
+	MemberListSkeleton,
+} from "#/features/members/components/member-list";
+import {
+	ProgramStats,
+	ProgramStatsSkeleton,
+} from "#/features/members/components/program-stats";
 import {
 	getProgramStats,
 	listMembers,
@@ -33,21 +40,21 @@ export const Route = createFileRoute("/_authed/programs/$programId/")({
 			.catch(undefined),
 	}),
 	loaderDeps: ({ search }) => ({ q: search.q, after: search.after }),
-	loader: async ({ params, deps }) => {
+	// Not awaited: the page shows at once, with skeletons until the data comes.
+	loader: ({ params, deps }) => {
 		if (!z.uuid().safeParse(params.programId).success) {
 			throw notFound();
 		}
-		const [page, stats] = await Promise.all([
-			listMembers({
+		return {
+			page: listMembers({
 				data: {
 					programId: params.programId,
 					search: deps.q,
 					after: deps.after,
 				},
 			}),
-			getProgramStats({ data: { programId: params.programId } }),
-		]);
-		return { ...page, stats };
+			stats: getProgramStats({ data: { programId: params.programId } }),
+		};
 	},
 	component: ProgramOverviewPage,
 });
@@ -64,7 +71,9 @@ function ProgramOverviewPage() {
 					again from the settings to retry.
 				</FormAlert>
 			) : null}
-			<ProgramStats stats={stats} />
+			<Await promise={stats} fallback={<ProgramStatsSkeleton />}>
+				{(stats) => <ProgramStats stats={stats} />}
+			</Await>
 			<Members />
 		</div>
 	);
@@ -72,7 +81,7 @@ function ProgramOverviewPage() {
 
 function Members() {
 	const program = programRoute.useLoaderData();
-	const { members, nextCursor } = Route.useLoaderData();
+	const { page } = Route.useLoaderData();
 	const { q, after } = Route.useSearch();
 	const navigate = useNavigate({ from: Route.fullPath });
 
@@ -107,41 +116,56 @@ function Members() {
 					</form>
 				</search>
 			</div>
-			{members.length > 0 ? (
-				<MemberList programId={program.id} members={members} />
-			) : (
-				<p className="text-muted-foreground text-sm">
-					{q
-						? `No member matches “${q}”.`
-						: after
-							? "No more members."
-							: "No members yet. Issue a card at your counter, or share the enrollment link."}
-				</p>
-			)}
-			{after || nextCursor ? (
-				<nav className="flex justify-between gap-2" aria-label="Members pages">
-					{after ? (
-						<Link
-							from={Route.fullPath}
-							search={{ q }}
-							className={buttonVariants({ variant: "outline", size: "sm" })}
-						>
-							Newest members
-						</Link>
-					) : (
-						<span />
-					)}
-					{nextCursor ? (
-						<Link
-							from={Route.fullPath}
-							search={{ q, after: nextCursor }}
-							className={buttonVariants({ variant: "outline", size: "sm" })}
-						>
-							Next page
-						</Link>
-					) : null}
-				</nav>
-			) : null}
+			<Await promise={page} fallback={<MemberListSkeleton />}>
+				{({ members, nextCursor }) => (
+					<>
+						{members.length > 0 ? (
+							<MemberList programId={program.id} members={members} />
+						) : (
+							<p className="text-muted-foreground text-sm">
+								{q
+									? `No member matches “${q}”.`
+									: after
+										? "No more members."
+										: "No members yet. Issue a card at your counter, or share the enrollment link."}
+							</p>
+						)}
+						{after || nextCursor ? (
+							<nav
+								className="flex justify-between gap-2"
+								aria-label="Members pages"
+							>
+								{after ? (
+									<Link
+										from={Route.fullPath}
+										search={{ q }}
+										className={buttonVariants({
+											variant: "outline",
+											size: "sm",
+										})}
+									>
+										Newest members
+									</Link>
+								) : (
+									<span />
+								)}
+								{nextCursor ? (
+									<Link
+										from={Route.fullPath}
+										search={{ q, after: nextCursor }}
+										className={buttonVariants({
+											variant: "outline",
+											size: "sm",
+										})}
+									>
+										Next page
+									</Link>
+								) : null}
+							</nav>
+						) : null}
+					</>
+				)}
+			</Await>
 		</section>
 	);
 }

@@ -1,7 +1,10 @@
-import { createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { Await, createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { MemberPassForm } from "#/features/members/components/member-pass-form";
+import {
+	MemberPassForm,
+	MemberPassFormSkeleton,
+} from "#/features/members/components/member-pass-form";
 import {
 	issuePass,
 	listAvailableWallets,
@@ -18,9 +21,17 @@ const programRoute = getRouteApi("/_authed/programs/$programId");
 export const Route = createFileRoute(
 	"/_authed/programs/$programId/members/new",
 )({
-	loader: () => listAvailableWallets(),
+	// Not awaited: the page shows at once. The wallets are set up on the
+	// server and do not change while the app runs: load them once.
+	loader: () => ({ wallets: listAvailableWallets() }),
+	staleTime: Number.POSITIVE_INFINITY,
 	component: IssuePassPage,
 });
+
+const SUBMIT_LABELS = {
+	apple: "Issue an Apple Wallet card",
+	google: "Issue a Google Wallet card",
+};
 
 interface IssuedPass {
 	url: string;
@@ -30,7 +41,7 @@ interface IssuedPass {
 
 function IssuePassPage() {
 	const program = programRoute.useLoaderData();
-	const wallets = Route.useLoaderData();
+	const { wallets } = Route.useLoaderData();
 	const issuePassFn = useServerFn(issuePass);
 	const [issued, setIssued] = useState<IssuedPass | null>(null);
 
@@ -48,32 +59,36 @@ function IssuePassPage() {
 						gets a new one with their current points.
 					</p>
 				</div>
-				{wallets.apple || wallets.google ? (
-					<MemberPassForm
-						wallets={wallets}
-						submitLabels={{
-							apple: "Issue an Apple Wallet card",
-							google: "Issue a Google Wallet card",
-						}}
-						pendingLabel="Issuing…"
-						autofill={false}
-						onSubmit={async (fields) => {
-							const { passLink, memberCreated } = await issuePassFn({
-								data: { ...fields, programId: program.id },
-							});
-							setIssued({
-								url: `${getAppOrigin()}${passLink}`,
-								memberName: `${fields.firstName} ${fields.lastName}`,
-								memberCreated,
-							});
-						}}
-					/>
-				) : (
-					<FormAlert>
-						No wallet is configured: set up Apple Wallet or Google Wallet to
-						issue cards.
-					</FormAlert>
-				)}
+				<Await
+					promise={wallets}
+					fallback={<MemberPassFormSkeleton submitLabels={SUBMIT_LABELS} />}
+				>
+					{(wallets) =>
+						wallets.apple || wallets.google ? (
+							<MemberPassForm
+								wallets={wallets}
+								submitLabels={SUBMIT_LABELS}
+								pendingLabel="Issuing…"
+								autofill={false}
+								onSubmit={async (fields) => {
+									const { passLink, memberCreated } = await issuePassFn({
+										data: { ...fields, programId: program.id },
+									});
+									setIssued({
+										url: `${getAppOrigin()}${passLink}`,
+										memberName: `${fields.firstName} ${fields.lastName}`,
+										memberCreated,
+									});
+								}}
+							/>
+						) : (
+							<FormAlert>
+								No wallet is configured: set up Apple Wallet or Google Wallet to
+								issue cards.
+							</FormAlert>
+						)
+					}
+				</Await>
 			</div>
 			<aside className="flex flex-col gap-3">
 				<PassPreview

@@ -22,7 +22,6 @@ import {
 	Eyebrow,
 	SiteLayout,
 } from "#/features/site/components/site-layout";
-import { SOURCE_URL } from "#/features/site/site";
 import { buttonVariants } from "@/components/ui/button";
 import { useToastOnce } from "@/hooks/use-toast-once";
 
@@ -39,7 +38,7 @@ export const Route = createFileRoute("/")({
 			{
 				name: "description",
 				content:
-					"Loyalty cards in Apple Wallet and Google Wallet for coffee shops, bakeries, food trucks and local shops. No app for your customers, open source.",
+					"Loyalty cards in Apple Wallet and Google Wallet for coffee shops, bakeries, food trucks and local shops. No app for your customers, nothing to install at the counter.",
 			},
 		],
 	}),
@@ -174,9 +173,9 @@ const FAQ = [
 			"Yes. Invite them by email: they can scan cards, enroll customers and manage points, while you keep the program's settings.",
 	},
 	{
-		question: "Who owns the data?",
+		question: "Does it work on Android too?",
 		answer:
-			"You do. Loylo is open source under the MIT license: you can use it as is, or host it on your own Cloudflare and Supabase accounts.",
+			"Yes. iPhone customers get the card in Apple Wallet, Android customers in Google Wallet. You run one program for both.",
 	},
 ];
 
@@ -201,7 +200,6 @@ function Home() {
 				<Features />
 				<Businesses />
 				<Comparison />
-				<OpenSource />
 				<Questions />
 				<LatestArticles />
 				<FinalCall />
@@ -248,7 +246,7 @@ function Hero() {
 					{[
 						"No app for your customers",
 						"Set up in minutes",
-						"Open source",
+						"iPhone and Android",
 					].map((item) => (
 						<li key={item} className="flex items-center gap-1.5">
 							<RiCheckLine className="size-4 text-success" />
@@ -494,60 +492,11 @@ function Comparison() {
 	);
 }
 
-function OpenSource() {
-	return (
-		<section className="border-border/60 border-y bg-card/60">
-			<div className={`${SECTION} py-24`}>
-				<SectionHeading
-					eyebrow="Open source"
-					title="Use it as it is, or run it on your own servers"
-					text="Loylo's code is public under the MIT license. Nothing locks you in: your members, your cards and your history stay yours."
-				/>
-				<div className="mt-12 grid gap-3 md:grid-cols-2">
-					<div className="flex flex-col gap-4 rounded-2xl bg-background p-6 shadow-border sm:p-8">
-						<h3 className="font-semibold text-lg tracking-tight">
-							Create an account
-						</h3>
-						<p className="text-muted-foreground text-sm leading-6">
-							Sign up, design your card and print your QR code today. The
-							wallets, the updates and the scanner are already set up.
-						</p>
-						<Link
-							to="/signup"
-							className={buttonVariants({ className: "mt-auto self-start" })}
-						>
-							Get started
-						</Link>
-					</div>
-					<div className="flex flex-col gap-4 rounded-2xl bg-background p-6 shadow-border sm:p-8">
-						<h3 className="font-semibold text-lg tracking-tight">
-							Host it yourself
-						</h3>
-						<p className="text-muted-foreground text-sm leading-6">
-							Deploy on Cloudflare Workers and Supabase, with your own Apple and
-							Google Wallet accounts. The README walks you through it.
-						</p>
-						<a
-							href={`${SOURCE_URL}#self-hosting`}
-							className={buttonVariants({
-								variant: "outline",
-								className: "mt-auto self-start",
-							})}
-						>
-							Read the guide
-						</a>
-					</div>
-				</div>
-			</div>
-		</section>
-	);
-}
-
 function Questions() {
 	return (
 		<section
 			id="faq"
-			className={`${SECTION} grid scroll-mt-20 gap-12 py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]`}
+			className={`${SECTION} grid scroll-mt-20 gap-12 pt-8 pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]`}
 		>
 			<SectionHeading
 				eyebrow="FAQ"

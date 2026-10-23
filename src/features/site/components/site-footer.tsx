@@ -1,4 +1,3 @@
-import { SOURCE_URL } from "../site";
 import { Wordmark } from "./wordmark";
 
 const COLUMNS = [
@@ -13,11 +12,7 @@ const COLUMNS = [
 	},
 	{
 		title: "Resources",
-		links: [
-			{ href: "/blog", label: "Blog" },
-			{ href: SOURCE_URL, label: "Source code" },
-			{ href: `${SOURCE_URL}#self-hosting`, label: "Self-hosting" },
-		],
+		links: [{ href: "/blog", label: "Blog" }],
 	},
 	{
 		title: "Account",
@@ -66,8 +61,8 @@ export function SiteFooter() {
 					</nav>
 				</div>
 				<div className="mt-12 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-border/60 border-t pt-6 text-muted-foreground text-xs">
-					<p>Open source under the MIT license.</p>
-					<p>Built on Cloudflare Workers and Supabase.</p>
+					<p>© {new Date().getFullYear()} Loylo</p>
+					<p>Made for shops with regulars.</p>
 				</div>
 			</div>
 		</footer>

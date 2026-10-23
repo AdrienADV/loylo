@@ -93,7 +93,7 @@ function Home() {
 					{FEATURES.map((feature) => (
 						<div
 							key={feature.title}
-							className="flex flex-col gap-2 rounded-2xl bg-muted p-5"
+							className="flex flex-col gap-2 rounded-2xl bg-[#f2f2f2] p-5"
 						>
 							<h2 className="font-semibold">{feature.title}</h2>
 							<p className="text-muted-foreground text-sm">{feature.text}</p>

@@ -6,7 +6,7 @@ import {
 	notFound,
 	useNavigate,
 } from "@tanstack/react-router";
-import type { FormEvent } from "react";
+import { type FormEvent, useDeferredValue } from "react";
 import { z } from "zod";
 import {
 	MemberList,
@@ -60,7 +60,10 @@ export const Route = createFileRoute("/_authed/programs/$programId/")({
 });
 
 function ProgramOverviewPage() {
-	const { stats } = Route.useLoaderData();
+	// The loader runs again on each search or page of members, with a new
+	// stats promise: keep showing the current stats until it settles,
+	// instead of their skeletons.
+	const stats = useDeferredValue(Route.useLoaderData().stats);
 	const { walletSync } = Route.useSearch();
 
 	return (

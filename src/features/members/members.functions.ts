@@ -20,12 +20,14 @@ import {
 	TRANSACTIONS_PAGE_SIZE,
 	toMemberListItem,
 	toMemberView,
+	toProgramStats,
 	toTransactionView,
 } from "#/features/members/members.server";
 import {
 	getAvailableWallets,
 	passLinkPath,
 } from "#/features/members/wallet-passes.server";
+import { programIdSchema } from "#/features/programs/programs.schemas";
 import { syncMemberWallets } from "#/features/wallet-sync/wallet-sync.server";
 import { databaseError, isCheckViolation } from "#/lib/supabase/errors.server";
 
@@ -86,36 +88,43 @@ export const listMembers = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
 	.validator(memberListSchema)
 	.handler(async ({ data, context }) => {
-		const [page, total] = await Promise.all([
-			context.supabase
-				.rpc("list_members", {
-					program_id: data.programId,
-					search: data.search,
-					after_created_at: data.after?.createdAt,
-					after_id: data.after?.id,
-					// One more than a page tells whether another page follows.
-					page_size: MEMBERS_PAGE_SIZE + 1,
-				})
-				.select(MEMBER_LIST_COLUMNS)
-				.order("created_at", { ascending: false })
-				.order("id", { ascending: false }),
-			context.supabase
-				.from("members")
-				.select("id", { count: "exact", head: true })
-				.eq("program_id", data.programId),
-		]);
-		if (page.error) {
-			throw databaseError("load the members", page.error);
-		}
-		if (total.error) {
-			throw databaseError("load the members", total.error);
+		const { data: rows, error } = await context.supabase
+			.rpc("list_members", {
+				program_id: data.programId,
+				search: data.search,
+				after_created_at: data.after?.createdAt,
+				after_id: data.after?.id,
+				// One more than a page tells whether another page follows.
+				page_size: MEMBERS_PAGE_SIZE + 1,
+			})
+			.select(MEMBER_LIST_COLUMNS)
+			.order("created_at", { ascending: false })
+			.order("id", { ascending: false });
+		if (error) {
+			throw databaseError("load the members", error);
 		}
 
 		return {
-			members: page.data.slice(0, MEMBERS_PAGE_SIZE).map(toMemberListItem),
-			nextCursor: nextMemberCursor(page.data),
-			total: total.count ?? 0,
+			members: rows.slice(0, MEMBERS_PAGE_SIZE).map(toMemberListItem),
+			nextCursor: nextMemberCursor(rows),
 		};
+	});
+
+/**
+ * Headline numbers of the program: members, members keeping the card in a
+ * wallet, and the last 30 days' activity.
+ */
+export const getProgramStats = createServerFn({ method: "GET" })
+	.middleware([authMiddleware])
+	.validator(programIdSchema)
+	.handler(async ({ data, context }) => {
+		const { data: row, error } = await context.supabase
+			.rpc("program_stats", { program_id: data.programId })
+			.single();
+		if (error) {
+			throw databaseError("load the statistics", error);
+		}
+		return toProgramStats(row);
 	});
 
 export const getMember = createServerFn({ method: "GET" })

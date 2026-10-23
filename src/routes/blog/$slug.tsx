@@ -1,17 +1,15 @@
 import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
+import { Markdown, type MarkdownComponents } from "@tanstack/markdown/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
-import {
-	type ArticleBlock,
-	findArticle,
-	formatArticleDate,
-} from "#/features/blog/articles";
+import { findArticle, formatArticleDate } from "#/features/blog/articles";
 import {
 	DISPLAY_HEADING,
 	Eyebrow,
 	SiteLayout,
 } from "#/features/site/components/site-layout";
 import { buttonVariants } from "@/components/ui/button";
+import { getAppOrigin } from "@/lib/app-origin";
 
 export const Route = createFileRoute("/blog/$slug")({
 	loader: ({ params }) => {
@@ -19,24 +17,88 @@ export const Route = createFileRoute("/blog/$slug")({
 		if (!article) {
 			throw notFound();
 		}
-		return article;
+		return { article, url: `${getAppOrigin()}/blog/${article.slug}` };
 	},
-	head: ({ loaderData }) => ({
-		meta: loaderData
-			? [
-					{ title: `${loaderData.title} · Loylo` },
-					{ name: "description", content: loaderData.summary },
-					{ property: "og:title", content: loaderData.title },
-					{ property: "og:description", content: loaderData.summary },
-					{ property: "og:type", content: "article" },
-				]
-			: [],
-	}),
+	head: ({ loaderData }) => {
+		if (!loaderData) {
+			return {};
+		}
+		const { article, url } = loaderData;
+		return {
+			meta: [
+				{ title: `${article.title} · Loylo` },
+				{ name: "description", content: article.summary },
+				{ property: "og:type", content: "article" },
+				{ property: "og:url", content: url },
+				{ property: "og:title", content: article.title },
+				{ property: "og:description", content: article.summary },
+				{ property: "article:published_time", content: article.publishedAt },
+				{ property: "article:section", content: article.category },
+				{ name: "twitter:card", content: "summary" },
+			],
+			links: [{ rel: "canonical", href: url }],
+			scripts: [
+				{
+					type: "application/ld+json",
+					children: JSON.stringify({
+						"@context": "https://schema.org",
+						"@type": "BlogPosting",
+						headline: article.title,
+						description: article.summary,
+						datePublished: article.publishedAt,
+						articleSection: article.category,
+						mainEntityOfPage: url,
+						publisher: { "@type": "Organization", name: "Loylo" },
+					}),
+				},
+			],
+		};
+	},
 	component: ArticlePage,
 });
 
+const PROSE = "text-[17px] text-foreground/85 leading-8";
+
+/** Article styles, by the tag each Markdown element renders to. */
+const components = {
+	h2: (props) => (
+		<h2
+			{...props}
+			className="mt-6 scroll-mt-20 font-semibold text-xl tracking-tight"
+		/>
+	),
+	h3: (props) => (
+		<h3 {...props} className="mt-4 scroll-mt-20 font-semibold text-lg" />
+	),
+	p: (props) => <p {...props} className={PROSE} />,
+	ul: (props) => (
+		<ul
+			{...props}
+			className={`${PROSE} flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground`}
+		/>
+	),
+	ol: (props) => (
+		<ol
+			{...props}
+			className={`${PROSE} flex list-decimal flex-col gap-2 pl-5 marker:text-muted-foreground`}
+		/>
+	),
+	strong: (props) => (
+		<strong {...props} className="font-semibold text-foreground" />
+	),
+	a: (props) => (
+		<a {...props} className="underline underline-offset-4 hover:opacity-80" />
+	),
+	blockquote: (props) => (
+		<blockquote
+			{...props}
+			className="border-border border-l-2 pl-5 text-muted-foreground italic"
+		/>
+	),
+} satisfies MarkdownComponents;
+
 function ArticlePage() {
-	const article = Route.useLoaderData();
+	const { article } = Route.useLoaderData();
 
 	return (
 		<SiteLayout>
@@ -69,9 +131,7 @@ function ArticlePage() {
 						</time>
 					</header>
 					<div className="mt-10 flex flex-col gap-5 border-border/60 border-t pt-10">
-						{article.body.map((block) => (
-							<Block key={blockKey(block)} block={block} />
-						))}
+						<Markdown components={components}>{article.document}</Markdown>
 					</div>
 				</article>
 				<aside className="mt-16 flex flex-col items-start gap-4 rounded-2xl bg-card p-6 shadow-border sm:p-8">
@@ -90,31 +150,4 @@ function ArticlePage() {
 			</main>
 		</SiteLayout>
 	);
-}
-
-function blockKey(block: ArticleBlock) {
-	return block.type === "ul" ? block.items.join() : block.text;
-}
-
-function Block({ block }: { block: ArticleBlock }) {
-	switch (block.type) {
-		case "h2":
-			return (
-				<h2 className="mt-6 font-semibold text-xl tracking-tight">
-					{block.text}
-				</h2>
-			);
-		case "ul":
-			return (
-				<ul className="flex list-disc flex-col gap-2 pl-5 text-[17px] text-foreground/85 leading-8 marker:text-muted-foreground">
-					{block.items.map((item) => (
-						<li key={item}>{item}</li>
-					))}
-				</ul>
-			);
-		default:
-			return (
-				<p className="text-[17px] text-foreground/85 leading-8">{block.text}</p>
-			);
-	}
 }

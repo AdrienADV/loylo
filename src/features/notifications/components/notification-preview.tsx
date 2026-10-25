@@ -1,4 +1,3 @@
-import { MotionConfig, motion } from "motion/react";
 import type { CSSProperties } from "react";
 
 import { hexColorSchema } from "#/lib/colors";
@@ -22,7 +21,7 @@ const HOME_SCREEN_SRC = "/iphone-home-screen.webp";
 
 /**
  * How the message lands on a customer's iPhone: a notification banner at the
- * top of the home screen, updated as the message is typed.
+ * top of the home screen, showing the message as it is typed.
  */
 export function NotificationPreview({
 	programName,
@@ -69,31 +68,27 @@ export function NotificationPreview({
 						className="absolute left-1/2 -translate-x-1/2 rounded-full bg-black"
 						style={{ top: pt(11), width: pt(125), height: pt(37) }}
 					/>
-					<MotionConfig reducedMotion="user">
-						{/* A new key when the first letter is typed drops the banner in again. */}
-						<motion.div
-							key={text ? "message" : "empty"}
-							className="absolute"
-							style={{ top: pt(56), left: pt(10), right: pt(10) }}
-							initial={{ y: "-120%", scale: 0.92, opacity: 0 }}
-							animate={{ y: 0, scale: 1, opacity: 1 }}
-							transition={{ type: "spring", stiffness: 420, damping: 32 }}
-						>
-							<Banner
-								programName={programName}
-								backgroundColor={backgroundColor}
-								logoUrl={logoUrl}
-								message={text}
-							/>
-						</motion.div>
-					</MotionConfig>
+					<div
+						className="absolute"
+						style={{ top: pt(56), left: pt(10), right: pt(10) }}
+					>
+						<Banner
+							programName={programName}
+							backgroundColor={backgroundColor}
+							logoUrl={logoUrl}
+							message={text}
+						/>
+					</div>
 				</div>
 			</div>
 		</figure>
 	);
 }
 
-/** The banner itself, in the iOS light material. */
+/**
+ * The banner itself, in a light Liquid Glass: mostly opaque, with a hint of
+ * the home screen through it and a lit top edge.
+ */
 function Banner({
 	programName,
 	backgroundColor,
@@ -113,11 +108,14 @@ function Banner({
 			style={{
 				gap: pt(10),
 				padding: `${pt(13)} ${pt(14)}`,
-				borderRadius: pt(24),
-				background: "rgba(246, 246, 246, 0.84)",
-				backdropFilter: "blur(30px) saturate(180%)",
-				WebkitBackdropFilter: "blur(30px) saturate(180%)",
-				boxShadow: "0 8px 32px rgba(0, 0, 0, 0.16)",
+				borderRadius: pt(26),
+				background:
+					"linear-gradient(to bottom, rgba(255, 255, 255, 0.94), rgba(246, 246, 248, 0.88))",
+				backdropFilter: "blur(24px) saturate(180%)",
+				WebkitBackdropFilter: "blur(24px) saturate(180%)",
+				border: "1px solid rgba(255, 255, 255, 0.7)",
+				boxShadow:
+					"inset 0 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 0, 0, 0.18)",
 			}}
 		>
 			<div

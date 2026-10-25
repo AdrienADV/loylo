@@ -278,21 +278,31 @@ function HeroPass({ slug }: { slug: string }) {
 	);
 }
 
+/** Fans the cards further open while the pointer is over them. */
+const CARD_MOTION =
+	"transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none";
+
 /** Three cards fanned out, with the notification a message sends. */
 function HeroCards() {
 	return (
 		<div
 			aria-hidden="true"
 			style={{ "--stagger": 2 } as React.CSSProperties}
-			className="relative mx-auto h-[25rem] w-full max-w-[26rem] animate-enter sm:h-[28rem]"
+			className="group relative mx-auto h-[25rem] w-full max-w-[26rem] animate-enter sm:h-[28rem]"
 		>
-			<div className="absolute top-6 left-0 w-52 -rotate-[8deg] sm:w-60">
+			<div
+				className={`${CARD_MOTION} absolute top-6 left-0 w-52 -rotate-[8deg] group-hover:-translate-x-4 group-hover:-rotate-[13deg] sm:w-60`}
+			>
 				<HeroPass slug="starbucks" />
 			</div>
-			<div className="absolute top-2 right-0 w-52 rotate-[7deg] sm:w-60">
+			<div
+				className={`${CARD_MOTION} absolute top-2 right-0 w-52 rotate-[7deg] group-hover:translate-x-4 group-hover:rotate-[12deg] sm:w-60`}
+			>
 				<HeroPass slug="mcdonalds" />
 			</div>
-			<div className="absolute top-10 left-1/2 w-56 -translate-x-1/2 sm:w-64">
+			<div
+				className={`${CARD_MOTION} absolute top-10 left-1/2 w-56 -translate-x-1/2 group-hover:-translate-y-3 sm:w-64`}
+			>
 				<HeroPass slug="fika-coffee" />
 			</div>
 			<div className="absolute right-0 bottom-0 left-0">

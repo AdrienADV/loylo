@@ -2,11 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { WalletProvider } from "#/features/members/members.schemas";
+import { toPassBalance } from "#/features/members/pass-balance";
 import type { ProgramImageName } from "#/features/programs/programs.schemas";
 import {
 	downloadProgramImage,
+	stampImageUrl,
 	syncGoogleLoyaltyClass,
 } from "#/features/programs/programs.server";
+import { stampImageName } from "#/features/programs/stamp-card";
 import {
 	type AppleWalletConfig,
 	type GoogleWalletConfig,
@@ -76,7 +79,7 @@ function secretsMatch(actual: string, expected: string): boolean {
 }
 
 const PASS_COLUMNS =
-	"id, serial_number, authentication_token, created_at, member:members!inner(first_name, last_name, points, updated_at, program:programs!inner(id, name, background_color, logo_path, wallet_message, updated_at))" as const;
+	"id, serial_number, authentication_token, created_at, member:members!inner(first_name, last_name, points, stamps, updated_at, program:programs!inner(id, name, background_color, logo_path, wallet_message, updated_at, kind, stamp_reward, stamp_images_path))" as const;
 
 /**
  * The pass with this serial number, or `null` when it does not exist or the
@@ -129,7 +132,10 @@ const APPLE_PASS_IMAGES = {
 	"icon@2x.png": "apple-icon@2x.png",
 	"logo.png": "apple-logo.png",
 	"logo@2x.png": "apple-logo@2x.png",
-} as const satisfies Record<keyof ApplePassImages, ProgramImageName>;
+} as const satisfies Record<
+	Exclude<keyof ApplePassImages, "strip@3x.png">,
+	ProgramImageName
+>;
 
 /** Builds and signs the member's `.pkpass` file. */
 export async function createApplePassFile(
@@ -143,13 +149,28 @@ export async function createApplePassFile(
 		throw new Error(`Program ${program.id} has no images`);
 	}
 
+	const balance = toPassBalance(program, pass.member);
+	const downloads: [string, string, string][] = Object.entries(
+		APPLE_PASS_IMAGES,
+	).map(([passName, imageName]) => [passName, folder, imageName]);
+	if (balance.kind === "stamps") {
+		if (!program.stamp_images_path) {
+			throw new Error(`Program ${program.id} has no stamp card images`);
+		}
+		downloads.push([
+			"strip@3x.png",
+			program.stamp_images_path,
+			stampImageName(balance.stamps),
+		]);
+	}
+
 	const images = Object.fromEntries(
 		await Promise.all(
-			Object.entries(APPLE_PASS_IMAGES).map(
-				async ([passName, imageName]) =>
+			downloads.map(
+				async ([passName, imageFolder, imageName]) =>
 					[
 						passName,
-						await downloadProgramImage(supabase, folder, imageName),
+						await downloadProgramImage(supabase, imageFolder, imageName),
 					] as const,
 			),
 		),
@@ -161,8 +182,9 @@ export async function createApplePassFile(
 				name: program.name,
 				backgroundColor: program.background_color,
 				message: program.wallet_message,
+				stampReward: program.stamp_reward,
 			},
-			member: { name: memberName(pass), points: pass.member.points },
+			member: { name: memberName(pass), balance },
 			pass: {
 				serialNumber: pass.serial_number,
 				authenticationToken: pass.authentication_token,
@@ -198,7 +220,10 @@ export async function createGoogleSaveUrl(
 			objectSuffix: pass.id,
 			serialNumber: pass.serial_number,
 			memberName: memberName(pass),
-			points: pass.member.points,
+			balance: toPassBalance(program, pass.member),
+			heroImageUrl: program.stamp_images_path
+				? stampImageUrl(supabase, program.stamp_images_path, pass.member.stamps)
+				: null,
 		},
 		config,
 	);

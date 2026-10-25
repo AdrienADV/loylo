@@ -10,6 +10,7 @@ import {
 import {
 	Await,
 	createFileRoute,
+	getRouteApi,
 	Link,
 	notFound,
 	useRouter,
@@ -21,21 +22,29 @@ import {
 	PointsForm,
 	PointsFormSkeleton,
 } from "#/features/members/components/points-form";
+import { StampsForm } from "#/features/members/components/stamps-form";
 import { WALLET_NAMES } from "#/features/members/components/wallet-state-badge";
 import {
+	addStamps,
 	adjustPoints,
 	getMember,
 	listTransactions,
 	retryWalletSync,
 } from "#/features/members/members.functions";
-import type { WalletProvider } from "#/features/members/members.schemas";
+import type {
+	Ledger,
+	WalletProvider,
+} from "#/features/members/members.schemas";
 import type {
 	MemberPassView,
 	MemberView,
 	TransactionView,
 	WalletState,
 } from "#/features/members/members.server";
+import type { TeamProgramView } from "#/features/programs/programs.server";
+import { STAMPS_PER_CARD } from "#/features/programs/stamp-card";
 import type { WalletSyncResult } from "#/features/wallet-sync/wallet-sync";
+import { formatStampBalance } from "#/lib/wallet/balance";
 import { FormAlert } from "@/components/form-alert";
 import { FormattedDate } from "@/components/formatted-date";
 import { SkeletonText } from "@/components/skeletons";
@@ -43,6 +52,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+
+const programRoute = getRouteApi("/_authed/programs/$programId");
 
 export const Route = createFileRoute(
 	"/_authed/programs/$programId/members/$memberId",
@@ -53,7 +64,7 @@ export const Route = createFileRoute(
 	}),
 	loaderDeps: ({ search }) => ({ before: search.before }),
 	// Not awaited: the page shows at once, with skeletons until the data comes.
-	loader: ({ params, deps }) => {
+	loader: ({ params, deps, parentMatchPromise }) => {
 		const ids = z
 			.object({ programId: z.uuid(), memberId: z.uuid() })
 			.safeParse(params);
@@ -61,9 +72,16 @@ export const Route = createFileRoute(
 			throw notFound();
 		}
 		const member = getMember({ data: ids.data });
-		const transactions = listTransactions({
-			data: { memberId: ids.data.memberId, before: deps.before },
-		});
+		// Points and stamps have their own history: the program tells which.
+		const transactions = parentMatchPromise.then(({ loaderData: program }) =>
+			listTransactions({
+				data: {
+					memberId: ids.data.memberId,
+					ledger: program?.kind ?? "points",
+					before: deps.before,
+				},
+			}),
+		);
 		return {
 			member,
 			// The history mixes in the card events, which come with the member.
@@ -79,6 +97,7 @@ export const Route = createFileRoute(
 });
 
 function MemberPage() {
+	const program = programRoute.useLoaderData();
 	const { programId, memberId } = Route.useParams();
 	const { member, history } = Route.useLoaderData();
 
@@ -114,7 +133,13 @@ function MemberPage() {
 			</div>
 
 			<Await promise={member} fallback={<BalanceSkeleton />}>
-				{(member) => <Balance member={member} />}
+				{(member) =>
+					program.kind === "stamps" ? (
+						<StampsBalance program={program} member={member} />
+					) : (
+						<Balance member={member} />
+					)
+				}
 			</Await>
 
 			<section className="flex flex-col gap-3">
@@ -177,6 +202,85 @@ function Balance({ member }: { member: MemberView }) {
 						type: "success",
 						title: `${direction === "add" ? "Added" : "Redeemed"} ${points} points.`,
 						description: `New balance: ${result.points}.`,
+					});
+				}}
+			/>
+		</section>
+	);
+}
+
+function StampsBalance({
+	program,
+	member,
+}: {
+	program: TeamProgramView;
+	member: MemberView;
+}) {
+	const router = useRouter();
+	const addStampsFn = useServerFn(addStamps);
+	/** The member whose wallet cards missed the last stamps change. */
+	const [syncFailedFor, setSyncFailedFor] = useState<string | null>(null);
+	const full = member.stamps === STAMPS_PER_CARD;
+	const cardImageUrl = program.stampImageUrls?.[member.stamps];
+
+	return (
+		<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
+			<div className="flex flex-col gap-3">
+				<div className="flex items-center justify-between gap-2">
+					<span className="text-muted-foreground text-sm">Stamp card</span>
+					<WalletStatus wallets={member.wallets} />
+				</div>
+				{cardImageUrl ? (
+					<img
+						src={cardImageUrl}
+						alt={`${member.stamps} of ${STAMPS_PER_CARD} stamps`}
+						className="aspect-[1125/369] w-full rounded-xl"
+						style={{ backgroundColor: program.backgroundColor }}
+					/>
+				) : null}
+				<div className="flex flex-wrap items-baseline justify-between gap-2">
+					<div className="font-semibold text-4xl tabular-nums">
+						{formatStampBalance(member.stamps, STAMPS_PER_CARD)}{" "}
+						<span className="font-normal text-base text-muted-foreground">
+							stamps
+						</span>
+					</div>
+					<span className="text-muted-foreground text-sm">
+						{member.stampRewards}{" "}
+						{member.stampRewards === 1 ? "reward" : "rewards"} given
+					</span>
+				</div>
+				{full ? (
+					<p className="rounded-xl bg-success/10 px-3 py-2 font-medium text-sm text-success">
+						Card full: {program.stampReward ?? "the reward"} is ready. The next
+						stamps give it and start a new card.
+					</p>
+				) : null}
+			</div>
+			{syncFailedFor === member.id ? (
+				<SyncFailedNotice
+					memberId={member.id}
+					onRetried={(walletSync) =>
+						setSyncFailedFor(walletSync === "failed" ? member.id : null)
+					}
+				/>
+			) : null}
+			<StampsForm
+				stamps={member.stamps}
+				onSubmit={async ({ stamps, direction }) => {
+					setSyncFailedFor(null);
+					const result = await addStampsFn({
+						data: { memberId: member.id, stamps, direction },
+					});
+					await router.invalidate({ sync: true });
+					setSyncFailedFor(result.walletSync === "failed" ? member.id : null);
+					const card = formatStampBalance(result.stamps, STAMPS_PER_CARD);
+					toast.add({
+						type: "success",
+						title: result.rewardGiven
+							? "Reward given, new card started."
+							: `${direction === "add" ? "Added" : "Removed"} ${stamps} ${stamps === 1 ? "stamp" : "stamps"}.`,
+						description: `Card: ${card}.`,
 					});
 				}}
 			/>
@@ -261,7 +365,7 @@ function SyncFailedNotice({
 	return (
 		<div className="flex flex-col items-start gap-2">
 			<FormAlert>
-				Points saved, but the member's wallet cards could not be updated: they
+				Change saved, but the member's wallet cards could not be updated: they
 				may still show the previous balance.
 			</FormAlert>
 			<Button variant="outline" size="sm" disabled={pending} onClick={retry}>
@@ -339,7 +443,7 @@ interface EntryLook {
 	tint: string;
 }
 
-function entryLook(entry: HistoryEntry): EntryLook {
+function entryLook(entry: HistoryEntry, ledger: Ledger): EntryLook {
 	if (entry.kind === "pass") {
 		const wallet = WALLET_NAMES[entry.provider];
 		switch (entry.event) {
@@ -363,11 +467,31 @@ function entryLook(entry: HistoryEntry): EntryLook {
 				};
 		}
 	}
-	if (entry.transaction.kind === "welcome") {
+	switch (entry.transaction.kind) {
+		case "welcome":
+			return {
+				label: `Welcome ${ledger}`,
+				icon: RiSparkling2Line,
+				tint: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+			};
+		case "stamp":
+			return {
+				label: "Stamps added",
+				icon: RiAddLine,
+				tint: "bg-success/15 text-success",
+			};
+		case "reward":
+			return {
+				label: "Reward given",
+				icon: RiGift2Line,
+				tint: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+			};
+	}
+	if (ledger === "stamps") {
 		return {
-			label: "Welcome points",
-			icon: RiSparkling2Line,
-			tint: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+			label: "Stamps removed",
+			icon: RiDeleteBin6Line,
+			tint: "bg-destructive/10 text-destructive",
 		};
 	}
 	return entry.transaction.delta > 0
@@ -399,6 +523,7 @@ function History({
 	until: string | null;
 }) {
 	const { before } = Route.useSearch();
+	const ledger = programRoute.useLoaderData().kind;
 	const entries = historyEntries(passes, transactions, nextBefore, until);
 
 	if (entries.length === 0) {
@@ -414,6 +539,7 @@ function History({
 							entry.kind === "pass" ? entry.key : `t-${entry.transaction.id}`
 						}
 						entry={entry}
+						ledger={ledger}
 					/>
 				))}
 			</ul>
@@ -474,8 +600,14 @@ function HistorySkeleton() {
 	);
 }
 
-function HistoryRow({ entry }: { entry: HistoryEntry }) {
-	const { label, icon: Icon, tint } = entryLook(entry);
+function HistoryRow({
+	entry,
+	ledger,
+}: {
+	entry: HistoryEntry;
+	ledger: Ledger;
+}) {
+	const { label, icon: Icon, tint } = entryLook(entry, ledger);
 	const transaction = entry.kind === "transaction" ? entry.transaction : null;
 
 	return (
@@ -510,7 +642,9 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
 							: `−${-transaction.delta}`}
 					</span>
 					<span className="mt-0.5 text-muted-foreground text-xs">
-						Balance {transaction.balanceAfter}
+						{ledger === "stamps"
+							? `Card ${formatStampBalance(transaction.balanceAfter, STAMPS_PER_CARD)}`
+							: `Balance ${transaction.balanceAfter}`}
 					</span>
 				</span>
 			) : null}

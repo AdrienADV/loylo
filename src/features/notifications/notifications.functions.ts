@@ -10,6 +10,7 @@ import {
 	toNotificationView,
 } from "#/features/notifications/notifications.server";
 import { programIdSchema } from "#/features/programs/programs.schemas";
+import { PROGRAM_TO_SYNC_COLUMNS } from "#/features/wallet-sync/wallet-sync";
 import { sendProgramMessageToWallets } from "#/features/wallet-sync/wallet-sync.server";
 import { getNotificationsConfig } from "#/lib/config.server";
 import { createAdminClient } from "#/lib/supabase/admin-client.server";
@@ -62,7 +63,7 @@ export const sendNotification = createServerFn({ method: "POST" })
 	.handler(async ({ data, context }) => {
 		const { data: program, error: readError } = await context.supabase
 			.from("programs")
-			.select("id, name, background_color, logo_path")
+			.select(PROGRAM_TO_SYNC_COLUMNS)
 			.eq("id", data.programId)
 			.maybeSingle();
 		if (readError) {

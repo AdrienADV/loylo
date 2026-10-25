@@ -4,6 +4,8 @@ import {
 	WALLET_PROVIDERS,
 	type WalletProvider,
 } from "#/features/members/members.schemas";
+import { toPassBalance } from "#/features/members/pass-balance";
+import { stampImageUrl } from "#/features/programs/programs.server";
 import { appleWalletSync } from "#/features/wallet-sync/apple-wallet-sync.server";
 import { googleWalletSync } from "#/features/wallet-sync/google-wallet-sync.server";
 import {
@@ -44,7 +46,7 @@ async function syncEachWallet(
 
 /**
  * Brings every pass of the member up to date in its wallet, with the
- * member's current points. `supabase` is the merchant's client: Row Level
+ * member's current points or stamps. `supabase` is the merchant's client: Row Level
  * Security confirms the member is theirs before any wallet is reached.
  * Returns `null` for an unknown or foreign member.
  */
@@ -54,7 +56,9 @@ export async function syncMemberWallets(
 ): Promise<WalletSyncResult | null> {
 	const { data: member, error } = await supabase
 		.from("members")
-		.select("points, wallet_passes(id, provider)")
+		.select(
+			"points, stamps, program:programs!inner(kind, stamp_images_path), wallet_passes(id, provider)",
+		)
 		.eq("id", memberId)
 		.maybeSingle();
 	if (error) {
@@ -69,19 +73,29 @@ export async function syncMemberWallets(
 		return null;
 	}
 
+	const balance = toPassBalance(member.program, member);
+	const stampFolder = member.program.stamp_images_path;
+	const imageUrl =
+		balance.kind === "stamps" && stampFolder
+			? stampImageUrl(supabase, stampFolder, member.stamps)
+			: null;
 	return syncEachWallet((wallet, provider) => {
 		const passIds = member.wallet_passes
 			.filter((pass) => pass.provider === provider)
 			.map((pass) => pass.id);
 		return passIds.length === 0
 			? Promise.resolve("skipped")
-			: wallet.syncMemberPasses({ points: member.points, passIds });
+			: wallet.syncMemberPasses({
+					balance,
+					stampImageUrl: imageUrl,
+					passIds,
+				});
 	});
 }
 
 /**
  * Brings every pass of the program up to date after a change to its name,
- * color or logo. `supabase` is the merchant's client, and `program` a row it
+ * color, logo or stamp card. `supabase` is the merchant's client, and `program` a row it
  * could read.
  */
 export function syncProgramWallets(

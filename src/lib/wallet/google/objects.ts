@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { hexColorSchema } from "#/lib/colors";
+import {
+	formatStampBalance,
+	type PassBalance,
+	passBalanceSchema,
+} from "#/lib/wallet/balance";
 
 /**
  * Builders for Google Wallet loyalty classes (one per program) and objects
@@ -27,6 +32,8 @@ export const loyaltyClassInputSchema = z.object({
 	logoUrl: z.url({ protocol: /^https$/ }),
 	/** The program's current message, shown on every pass of the class. */
 	message: z.string().trim().min(1).max(100).nullish(),
+	/** What a full stamp card gives; stamp cards only. */
+	stampReward: z.string().trim().min(1).max(40).nullish(),
 });
 
 export type LoyaltyClassInput = z.input<typeof loyaltyClassInputSchema>;
@@ -36,7 +43,9 @@ export const loyaltyObjectInputSchema = z.object({
 	objectSuffix: idSuffixSchema,
 	serialNumber: z.string().min(16).max(64),
 	memberName: z.string().trim().min(1).max(128),
-	points: z.int().nonnegative(),
+	balance: passBalanceSchema,
+	/** Stamp cards: the card image with the member's stamps. */
+	heroImageUrl: z.url({ protocol: /^https$/ }).nullish(),
 });
 
 export type LoyaltyObjectInput = z.input<typeof loyaltyObjectInputSchema>;
@@ -72,26 +81,65 @@ export interface GoogleLoyaltyClass {
 	multipleDevicesAndHoldersAllowedStatus: "ONE_USER_ALL_DEVICES";
 	callbackOptions: { url: string };
 	messages?: GoogleMessage[];
+	rewardsTierLabel?: string;
+	rewardsTier?: string;
 }
 
 export interface GoogleLoyaltyPoints {
 	label: string;
-	balance: { int: number };
+	balance: { int: number } | { string: string };
 }
 
-export interface GoogleLoyaltyObject {
+export interface GoogleImage {
+	sourceUri: { uri: string };
+	contentDescription: LocalizedString;
+}
+
+/** The fields of an object that show the member's balance. */
+export interface GoogleLoyaltyBalance {
+	loyaltyPoints: GoogleLoyaltyPoints;
+	heroImage?: GoogleImage;
+}
+
+export interface GoogleLoyaltyObject extends GoogleLoyaltyBalance {
 	id: string;
 	classId: string;
 	state: "ACTIVE";
 	accountName: string;
-	loyaltyPoints: GoogleLoyaltyPoints;
 	barcode: { type: "QR_CODE"; value: string };
 }
 
-export function buildLoyaltyPoints(points: number): GoogleLoyaltyPoints {
+function localized(value: string): LocalizedString {
+	return { defaultValue: { language: "en-US", value } };
+}
+
+/**
+ * Points as a number; stamps as "7/10", with the card image as the hero
+ * image of the pass. Also used to patch an object when the balance changes.
+ */
+export function buildLoyaltyBalance(
+	balance: PassBalance,
+	heroImageUrl?: string | null,
+): GoogleLoyaltyBalance {
+	const parsed = passBalanceSchema.parse(balance);
+	if (parsed.kind === "points") {
+		return {
+			loyaltyPoints: { label: "Points", balance: { int: parsed.points } },
+		};
+	}
+	const stamps = formatStampBalance(parsed.stamps, parsed.cardSize);
 	return {
-		label: "Points",
-		balance: { int: z.int().nonnegative().parse(points) },
+		loyaltyPoints: { label: "Stamps", balance: { string: stamps } },
+		...(heroImageUrl
+			? {
+					heroImage: {
+						sourceUri: {
+							uri: z.url({ protocol: /^https$/ }).parse(heroImageUrl),
+						},
+						contentDescription: localized(`${stamps} stamps`),
+					},
+				}
+			: {}),
 	};
 }
 
@@ -112,8 +160,14 @@ export function buildLoyaltyClass(
 	input: LoyaltyClassInput,
 	options: { issuerId: string; callbackUrl: string },
 ): GoogleLoyaltyClass {
-	const { classSuffix, programName, backgroundColor, logoUrl, message } =
-		loyaltyClassInputSchema.parse(input);
+	const {
+		classSuffix,
+		programName,
+		backgroundColor,
+		logoUrl,
+		message,
+		stampReward,
+	} = loyaltyClassInputSchema.parse(input);
 
 	return {
 		id: toGoogleWalletId(options.issuerId, classSuffix),
@@ -121,9 +175,7 @@ export function buildLoyaltyClass(
 		programName: "Loyalty card",
 		programLogo: {
 			sourceUri: { uri: logoUrl },
-			contentDescription: {
-				defaultValue: { language: "en-US", value: `${programName} logo` },
-			},
+			contentDescription: localized(`${programName} logo`),
 		},
 		hexBackgroundColor: backgroundColor,
 		// Required on every insert and update; Google reviews the class once.
@@ -136,6 +188,9 @@ export function buildLoyaltyClass(
 		...(message
 			? { messages: [buildProgramMessage(programName, message, "TEXT")] }
 			: {}),
+		...(stampReward
+			? { rewardsTierLabel: "Reward", rewardsTier: stampReward }
+			: {}),
 	};
 }
 
@@ -143,15 +198,21 @@ export function buildLoyaltyObject(
 	input: LoyaltyObjectInput,
 	options: { issuerId: string },
 ): GoogleLoyaltyObject {
-	const { classSuffix, objectSuffix, serialNumber, memberName, points } =
-		loyaltyObjectInputSchema.parse(input);
+	const {
+		classSuffix,
+		objectSuffix,
+		serialNumber,
+		memberName,
+		balance,
+		heroImageUrl,
+	} = loyaltyObjectInputSchema.parse(input);
 
 	return {
 		id: toGoogleWalletId(options.issuerId, objectSuffix),
 		classId: toGoogleWalletId(options.issuerId, classSuffix),
 		state: "ACTIVE",
 		accountName: memberName,
-		loyaltyPoints: buildLoyaltyPoints(points),
+		...buildLoyaltyBalance(balance, heroImageUrl),
 		// Same QR code content as the Apple pass: the serial number.
 		barcode: { type: "QR_CODE", value: serialNumber },
 	};

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { emailSchema } from "#/features/auth/auth.schemas";
+import { STAMPS_PER_CARD } from "#/features/programs/stamp-card";
 
 export const WALLET_PROVIDERS = ["apple", "google"] as const;
 
@@ -106,7 +107,34 @@ export const pointsChangeSchema = pointsChangeFieldsSchema.extend({
 	memberId: z.uuid(),
 });
 
+export const STAMPS_DIRECTIONS = ["add", "remove"] as const;
+
+/**
+ * Stamps to add, or to remove after a mistake. Adding to a full card gives
+ * the reward and starts a new card with these stamps.
+ */
+export const stampsChangeFieldsSchema = z.object({
+	stamps: z.coerce
+		.number({ error: "Enter a number of stamps." })
+		.int("Enter a whole number.")
+		.min(1, "Enter at least 1 stamp.")
+		.max(STAMPS_PER_CARD, `Use at most ${STAMPS_PER_CARD} stamps at once.`),
+	direction: z.enum(STAMPS_DIRECTIONS, { error: "Choose add or remove." }),
+});
+
+export type StampsChangeFields = z.output<typeof stampsChangeFieldsSchema>;
+
+export const stampsChangeSchema = stampsChangeFieldsSchema.extend({
+	memberId: z.uuid(),
+});
+
+/** Each program kind has its own history: points or stamps. */
+export const LEDGERS = ["points", "stamps"] as const;
+
+export type Ledger = (typeof LEDGERS)[number];
+
 export const transactionListSchema = memberIdSchema.extend({
+	ledger: z.enum(LEDGERS).default("points"),
 	/** Only transactions older than this one: the last one shown. */
 	before: z.int().positive().optional(),
 });

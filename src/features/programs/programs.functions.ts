@@ -3,14 +3,19 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { authMiddleware } from "#/features/auth/auth.middleware";
 import {
+	PROGRAM_FIELD_NAMES,
+	type ProgramFields,
 	programFieldsSchema,
 	programIdSchema,
 } from "#/features/programs/programs.schemas";
 import {
 	newImageFolder,
+	newStampImageFolder,
 	PROGRAM_COLUMNS,
 	readProgramImages,
+	readStampImages,
 	removeProgramImages,
+	removeStampImages,
 	syncGoogleLoyaltyClass,
 	TEAM_PROGRAM_COLUMNS,
 	toProgramView,
@@ -18,6 +23,7 @@ import {
 	uploadProgramImages,
 } from "#/features/programs/programs.server";
 import { requireProgramAdmin } from "#/features/team/team.server";
+import { PROGRAM_TO_SYNC_COLUMNS } from "#/features/wallet-sync/wallet-sync";
 import { syncProgramWallets } from "#/features/wallet-sync/wallet-sync.server";
 import { databaseError } from "#/lib/supabase/errors.server";
 
@@ -32,13 +38,32 @@ function parseProgramForm(data: unknown) {
 	if (!(data instanceof FormData)) {
 		throw new Error("Expected form data");
 	}
-	const fields = programFieldsSchema.parse({
-		name: data.get("name"),
-		backgroundColor: data.get("backgroundColor"),
-		initialPoints: data.get("initialPoints"),
-	});
+	const fields = programFieldsSchema.parse(
+		Object.fromEntries(
+			PROGRAM_FIELD_NAMES.map((name) => [name, data.get(name) ?? undefined]),
+		),
+	);
 	return { fields, formData: data };
 }
+
+/** The settings columns of the fields' kind; the other kind's stay empty. */
+function kindColumns(fields: ProgramFields) {
+	return fields.kind === "points"
+		? {
+				initial_points: fields.initialPoints,
+				initial_stamps: 0,
+				stamp_reward: null,
+				stamp_icon: null,
+			}
+		: {
+				initial_points: 0,
+				initial_stamps: fields.initialStamps,
+				stamp_reward: fields.stampReward,
+				stamp_icon: fields.stampIcon,
+			};
+}
+
+const MISSING_STAMP_IMAGES = "The stamp card images are missing. Save again.";
 
 export const listPrograms = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
@@ -81,10 +106,23 @@ export const createProgram = createServerFn({ method: "POST" })
 		if (!images) {
 			throw new Error("Add a logo.");
 		}
+		const stampImages =
+			fields.kind === "stamps" ? await readStampImages(formData) : null;
+		if (fields.kind === "stamps" && !stampImages) {
+			throw new Error(MISSING_STAMP_IMAGES);
+		}
 
 		const programId = crypto.randomUUID();
 		const folder = newImageFolder(context.userId, programId);
-		await uploadProgramImages(context.supabase, folder, images);
+		const stampFolder = stampImages
+			? newStampImageFolder(context.userId, programId)
+			: null;
+		await Promise.all([
+			uploadProgramImages(context.supabase, folder, images),
+			stampImages && stampFolder
+				? uploadProgramImages(context.supabase, stampFolder, stampImages)
+				: null,
+		]);
 
 		const { data: row, error } = await context.supabase
 			.from("programs")
@@ -92,13 +130,18 @@ export const createProgram = createServerFn({ method: "POST" })
 				id: programId,
 				name: fields.name,
 				background_color: fields.backgroundColor,
-				initial_points: fields.initialPoints,
+				kind: fields.kind,
+				...kindColumns(fields),
 				logo_path: folder,
+				stamp_images_path: stampFolder,
 			})
 			.select(PROGRAM_COLUMNS)
 			.single();
 		if (error) {
-			await removeProgramImages(context.supabase, folder);
+			await Promise.all([
+				removeProgramImages(context.supabase, folder),
+				stampFolder ? removeStampImages(context.supabase, stampFolder) : null,
+			]);
 			throw databaseError("create the program", error);
 		}
 
@@ -122,7 +165,9 @@ export const updateProgram = createServerFn({ method: "POST" })
 		await requireProgramAdmin(context.supabase, programId, context.userId);
 		const { data: current, error: readError } = await context.supabase
 			.from("programs")
-			.select("logo_path")
+			.select(
+				"logo_path, kind, background_color, stamp_icon, stamp_images_path",
+			)
 			.eq("id", programId)
 			.maybeSingle();
 		if (readError) {
@@ -131,40 +176,73 @@ export const updateProgram = createServerFn({ method: "POST" })
 		if (!current) {
 			throw notFound();
 		}
+		if (fields.kind !== current.kind) {
+			throw new Error("A program cannot switch between points and stamps.");
+		}
 
 		const images = await readProgramImages(formData);
 		const folder = images
 			? newImageFolder(context.userId, programId)
 			: current.logo_path;
-		if (images && folder) {
-			await uploadProgramImages(context.supabase, folder, images);
+		// The card images show the stamp icon on the card color: the browser
+		// draws them again whenever either changes.
+		const stampImages =
+			fields.kind === "stamps" ? await readStampImages(formData) : null;
+		if (
+			fields.kind === "stamps" &&
+			!stampImages &&
+			(fields.stampIcon !== current.stamp_icon ||
+				fields.backgroundColor !== current.background_color)
+		) {
+			throw new Error(MISSING_STAMP_IMAGES);
 		}
+		const stampFolder = stampImages
+			? newStampImageFolder(context.userId, programId)
+			: current.stamp_images_path;
+		await Promise.all([
+			images && folder
+				? uploadProgramImages(context.supabase, folder, images)
+				: null,
+			stampImages && stampFolder
+				? uploadProgramImages(context.supabase, stampFolder, stampImages)
+				: null,
+		]);
 
 		const { data: row, error } = await context.supabase
 			.from("programs")
 			.update({
 				name: fields.name,
 				background_color: fields.backgroundColor,
-				initial_points: fields.initialPoints,
+				...kindColumns(fields),
 				logo_path: folder,
+				stamp_images_path: stampFolder,
 			})
 			.eq("id", programId)
 			.select(PROGRAM_COLUMNS)
 			.maybeSingle();
 		if (error || !row) {
-			if (images && folder) {
-				await removeProgramImages(context.supabase, folder);
-			}
+			await Promise.all([
+				images && folder ? removeProgramImages(context.supabase, folder) : null,
+				stampImages && stampFolder
+					? removeStampImages(context.supabase, stampFolder)
+					: null,
+			]);
 			if (error) {
 				throw databaseError("update the program", error);
 			}
 			throw notFound();
 		}
-		if (images && current.logo_path) {
-			await removeProgramImages(context.supabase, current.logo_path);
-		}
+		await Promise.all([
+			images && current.logo_path
+				? removeProgramImages(context.supabase, current.logo_path)
+				: null,
+			stampImages && current.stamp_images_path
+				? removeStampImages(context.supabase, current.stamp_images_path)
+				: null,
+		]);
 
-		// Apple devices download the passes again, Google passes follow their class.
+		// Apple devices download the passes again, Google passes follow their
+		// class (and, for stamp cards, their objects).
 		return {
 			program: toProgramView(context.supabase, row),
 			walletSync: await syncProgramWallets(context.supabase, row),
@@ -180,7 +258,7 @@ export const deleteProgram = createServerFn({ method: "POST" })
 			.from("programs")
 			.delete()
 			.eq("id", data.programId)
-			.select("logo_path")
+			.select("logo_path, stamp_images_path")
 			.maybeSingle();
 		if (error) {
 			throw databaseError("delete the program", error);
@@ -189,9 +267,14 @@ export const deleteProgram = createServerFn({ method: "POST" })
 			throw notFound();
 		}
 		// Google Wallet classes cannot be deleted; without passes, they stay unused.
-		if (row.logo_path) {
-			await removeProgramImages(context.supabase, row.logo_path);
-		}
+		await Promise.all([
+			row.logo_path
+				? removeProgramImages(context.supabase, row.logo_path)
+				: null,
+			row.stamp_images_path
+				? removeStampImages(context.supabase, row.stamp_images_path)
+				: null,
+		]);
 	});
 
 /**
@@ -206,7 +289,7 @@ export const retryProgramWalletSync = createServerFn({ method: "POST" })
 	.handler(async ({ data, context }) => {
 		const { data: row, error } = await context.supabase
 			.from("programs")
-			.select("id, name, background_color, logo_path, wallet_message")
+			.select(PROGRAM_TO_SYNC_COLUMNS)
 			.eq("id", data.programId)
 			.maybeSingle();
 		if (error) {

@@ -9,6 +9,7 @@ import {
 	pointsChangeSchema,
 	programMemberPassSchema,
 	programMemberSchema,
+	stampsChangeSchema,
 	transactionListSchema,
 } from "#/features/members/members.schemas";
 import {
@@ -190,6 +191,9 @@ export const adjustPoints = createServerFn({ method: "POST" })
 			if (isCheckViolation(error, "members_points_check")) {
 				throw new Error("This member does not have enough points.");
 			}
+			if (error.code === "LY003") {
+				throw new Error("This program collects stamps, not points.");
+			}
 			throw databaseError("update the points", error);
 		}
 		// The function returns null when RLS hides the member.
@@ -204,7 +208,49 @@ export const adjustPoints = createServerFn({ method: "POST" })
 		};
 	});
 
-/** Sends the member's current points to their wallets again. */
+/**
+ * Adds stamps, or removes stamps given by mistake, then brings the member's
+ * passes up to date. Adding to a full card gives the reward and starts a new
+ * card: `rewardGiven` says so.
+ */
+export const addStamps = createServerFn({ method: "POST" })
+	.middleware([authMiddleware])
+	.validator(stampsChangeSchema)
+	.handler(async ({ data, context }) => {
+		const { data: row, error } = await context.supabase
+			.rpc("add_stamps", {
+				member_id: data.memberId,
+				count: data.direction === "add" ? data.stamps : -data.stamps,
+			})
+			.maybeSingle();
+		if (error) {
+			if (isCheckViolation(error, "members_stamps_check")) {
+				throw new Error("This member does not have that many stamps.");
+			}
+			if (error.code === "LY003") {
+				throw new Error("This program counts points, not stamps.");
+			}
+			if (error.code === "LY004") {
+				throw new Error(
+					"That many stamps do not fit on the card. Fill it first: the next stamps start a new card.",
+				);
+			}
+			throw databaseError("update the stamps", error);
+		}
+		// No row when RLS hides the member.
+		if (!row) {
+			throw notFound();
+		}
+
+		return {
+			stamps: row.stamps,
+			rewardGiven: row.reward_given,
+			walletSync:
+				(await syncMemberWallets(context.supabase, data.memberId)) ?? "skipped",
+		};
+	});
+
+/** Sends the member's current points or stamps to their wallets again. */
 export const retryWalletSync = createServerFn({ method: "POST" })
 	.middleware([authMiddleware])
 	.validator(memberIdSchema)
@@ -216,14 +262,16 @@ export const retryWalletSync = createServerFn({ method: "POST" })
 		return { walletSync };
 	});
 
-/** The member's point changes, newest first, a page at a time. */
+/** The member's point or stamp changes, newest first, a page at a time. */
 export const listTransactions = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
 	.validator(transactionListSchema)
 	.handler(async ({ data, context }) => {
 		// Including the `before` transaction gives the date this page ends at.
 		let query = context.supabase
-			.from("point_transactions")
+			.from(
+				data.ledger === "stamps" ? "stamp_transactions" : "point_transactions",
+			)
 			.select(TRANSACTION_COLUMNS)
 			.eq("member_id", data.memberId)
 			.order("id", { ascending: false })
@@ -233,7 +281,7 @@ export const listTransactions = createServerFn({ method: "GET" })
 		}
 		const { data: allRows, error } = await query;
 		if (error) {
-			throw databaseError("load the points history", error);
+			throw databaseError(`load the ${data.ledger} history`, error);
 		}
 
 		const newer = allRows[0]?.id === data.before ? allRows[0] : undefined;

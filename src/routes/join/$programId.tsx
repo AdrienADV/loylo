@@ -8,6 +8,7 @@ import {
 } from "#/features/enrollment/enrollment.functions";
 import { MemberPassForm } from "#/features/members/components/member-pass-form";
 import type { WalletProvider } from "#/features/members/members.schemas";
+import { welcomeText } from "#/features/programs/program-welcome";
 import { pickForegroundColor } from "#/lib/colors";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -85,11 +86,12 @@ function JoinPage() {
 					<CardDescription>
 						{pass
 							? "If your wallet did not open, use the button below."
-							: `Join ${program.name}'s loyalty program and keep your card in your phone's wallet.${
-									program.initialPoints > 0
-										? ` You start with ${program.initialPoints} points.`
-										: ""
-								}`}
+							: [
+									`Join ${program.name}'s loyalty program and keep your card in your phone's wallet.`,
+									welcomeText(program),
+								]
+									.filter(Boolean)
+									.join(" ")}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

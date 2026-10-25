@@ -1,23 +1,72 @@
 import { z } from "zod";
 
+import {
+	MAX_INITIAL_STAMPS,
+	stampIconSchema,
+} from "#/features/programs/stamp-card";
 import { hexColorSchema } from "#/lib/colors";
 
-/** Editable fields of a program, shared by the form and the server functions. */
-export const programFieldsSchema = z.object({
+export const PROGRAM_KINDS = ["points", "stamps"] as const;
+
+export type ProgramKind = (typeof PROGRAM_KINDS)[number];
+
+const programDesignSchema = z.object({
 	name: z
 		.string()
 		.trim()
 		.min(1, "Enter the name of your business.")
 		.max(64, "Use at most 64 characters."),
 	backgroundColor: hexColorSchema,
-	initialPoints: z.coerce
-		.number({ error: "Enter a number." })
-		.int("Enter a whole number.")
-		.min(0, "Points cannot be negative.")
-		.max(1_000_000, "Use at most 1,000,000 points."),
 });
 
+/**
+ * Editable fields of a program, shared by the form and the server functions.
+ * Each kind has its own fields; the kind itself is only chosen on creation.
+ */
+export const programFieldsSchema = z.discriminatedUnion(
+	"kind",
+	[
+		programDesignSchema.extend({
+			kind: z.literal("points"),
+			initialPoints: z.coerce
+				.number({ error: "Enter a number." })
+				.int("Enter a whole number.")
+				.min(0, "Points cannot be negative.")
+				.max(1_000_000, "Use at most 1,000,000 points."),
+		}),
+		programDesignSchema.extend({
+			kind: z.literal("stamps"),
+			initialStamps: z.coerce
+				.number({ error: "Enter a number." })
+				.int("Enter a whole number.")
+				.min(0, "Stamps cannot be negative.")
+				.max(
+					MAX_INITIAL_STAMPS,
+					`Use at most ${MAX_INITIAL_STAMPS} stamps: a new card is never full.`,
+				),
+			stampReward: z
+				.string()
+				.trim()
+				.min(1, "Enter what a full card gives.")
+				.max(40, "Use at most 40 characters."),
+			stampIcon: stampIconSchema,
+		}),
+	],
+	{ error: "Choose points or stamps." },
+);
+
 export type ProgramFields = z.output<typeof programFieldsSchema>;
+
+/** Names of the program form's fields, as sent in its FormData. */
+export const PROGRAM_FIELD_NAMES = [
+	"name",
+	"backgroundColor",
+	"kind",
+	"initialPoints",
+	"initialStamps",
+	"stampReward",
+	"stampIcon",
+] as const;
 
 export const programIdSchema = z.object({ programId: z.uuid() });
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { hexColorSchema, pickForegroundColor, toCssRgb } from "#/lib/colors";
+import { formatStampBalance, passBalanceSchema } from "#/lib/wallet/balance";
 
 /** Data needed to render one member's pass, as stored in the database. */
 export const applePassInputSchema = z.object({
@@ -8,10 +9,12 @@ export const applePassInputSchema = z.object({
 		name: z.string().trim().min(1).max(64),
 		backgroundColor: hexColorSchema,
 		message: z.string().trim().min(1).max(100).nullable(),
+		/** What a full stamp card gives; stamp cards only. */
+		stampReward: z.string().trim().min(1).max(40).nullish(),
 	}),
 	member: z.object({
 		name: z.string().trim().min(1).max(128),
-		points: z.int().nonnegative(),
+		balance: passBalanceSchema,
 	}),
 	pass: z.object({
 		serialNumber: z.string().min(16).max(64),
@@ -64,6 +67,7 @@ export const applePassJsonSchema = z.object({
 	storeCard: z.object({
 		primaryFields: z.array(passFieldSchema),
 		secondaryFields: z.array(passFieldSchema),
+		auxiliaryFields: z.array(passFieldSchema).optional(),
 		backFields: z.array(passFieldSchema),
 	}),
 });
@@ -100,15 +104,7 @@ export function buildApplePassJson(
 			},
 		],
 		storeCard: {
-			primaryFields: [
-				{
-					key: "points",
-					label: "POINTS",
-					value: member.points,
-					changeMessage: "You now have %@ points.",
-				},
-			],
-			secondaryFields: [{ key: "member", label: "MEMBER", value: member.name }],
+			...balanceFields(member.balance, member.name, program.stampReward),
 			backFields: [
 				{
 					// Marketing notifications update this field; `changeMessage`
@@ -120,5 +116,51 @@ export function buildApplePassJson(
 				},
 			],
 		},
+	};
+}
+
+type PassFields = Pick<
+	ApplePassJson["storeCard"],
+	"primaryFields" | "secondaryFields" | "auxiliaryFields"
+>;
+
+/**
+ * Points are the big primary field. Stamp cards show their stamps in the
+ * strip image instead, which hides primary fields: the count and the reward
+ * go below it.
+ */
+function balanceFields(
+	balance: z.output<typeof passBalanceSchema>,
+	memberName: string,
+	stampReward: string | null | undefined,
+): PassFields {
+	const member = { key: "member", label: "MEMBER", value: memberName };
+	if (balance.kind === "points") {
+		return {
+			primaryFields: [
+				{
+					key: "points",
+					label: "POINTS",
+					value: balance.points,
+					changeMessage: "You now have %@ points.",
+				},
+			],
+			secondaryFields: [member],
+		};
+	}
+	return {
+		primaryFields: [],
+		secondaryFields: [
+			{
+				key: "stamps",
+				label: "STAMPS",
+				value: formatStampBalance(balance.stamps, balance.cardSize),
+				changeMessage: "Stamps: %@",
+			},
+			...(stampReward
+				? [{ key: "reward", label: "REWARD", value: stampReward }]
+				: []),
+		],
+		auxiliaryFields: [member],
 	};
 }

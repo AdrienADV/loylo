@@ -1,19 +1,35 @@
+import { StampCardCanvas } from "#/features/programs/components/stamp-card-canvas";
+import {
+	STAMPS_PER_CARD,
+	type StampIcon,
+} from "#/features/programs/stamp-card";
 import { hexColorSchema, pickForegroundColor } from "#/lib/colors";
+import { formatStampBalance } from "#/lib/wallet/balance";
+
+/** A stamp card's balance and design, for the preview. */
+export interface StampsPreview {
+	stamps: number;
+	icon: StampIcon;
+	reward: string;
+}
 
 /**
  * Approximation of the store card Apple Wallet shows, built from the same
- * values as the real pass (`buildApplePassJson`).
+ * values as the real pass (`buildApplePassJson`). With `stamps`, the stamp
+ * card: its strip image, then the count and the reward.
  */
 export function PassPreview({
 	name,
 	backgroundColor,
 	points,
+	stamps,
 	logoUrl,
 	memberName = "Ada Lovelace",
 }: {
 	name: string;
 	backgroundColor: string;
 	points: number;
+	stamps?: StampsPreview;
 	logoUrl: string | null;
 	memberName?: string;
 }) {
@@ -40,16 +56,40 @@ export function PassPreview({
 				</span>
 			</div>
 
-			<div className="flex flex-col gap-4">
-				<div>
-					<div className={labelClass}>Points</div>
-					<div className="font-light text-4xl">{points}</div>
+			{stamps ? (
+				<div className="flex flex-col gap-3">
+					<StampCardCanvas
+						design={{ backgroundColor: background, icon: stamps.icon }}
+						stamps={stamps.stamps}
+						className="-mx-4 w-[calc(100%+2rem)] max-w-none"
+					/>
+					<div className="flex gap-6">
+						<div>
+							<div className={labelClass}>Stamps</div>
+							<div>{formatStampBalance(stamps.stamps, STAMPS_PER_CARD)}</div>
+						</div>
+						<div className="min-w-0">
+							<div className={labelClass}>Reward</div>
+							<div className="truncate">{stamps.reward || "Your reward"}</div>
+						</div>
+					</div>
+					<div>
+						<div className={labelClass}>Member</div>
+						<div>{memberName}</div>
+					</div>
 				</div>
-				<div>
-					<div className={labelClass}>Member</div>
-					<div>{memberName}</div>
+			) : (
+				<div className="flex flex-col gap-4">
+					<div>
+						<div className={labelClass}>Points</div>
+						<div className="font-light text-4xl">{points}</div>
+					</div>
+					<div>
+						<div className={labelClass}>Member</div>
+						<div>{memberName}</div>
+					</div>
 				</div>
-			</div>
+			)}
 
 			<div className="mx-auto grid size-24 grid-cols-5 gap-0.5 rounded-lg bg-white p-2">
 				{Array.from({ length: 25 }, (_, index) => (

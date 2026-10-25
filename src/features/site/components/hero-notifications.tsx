@@ -19,44 +19,39 @@ const NOTIFICATIONS = [
 	},
 ];
 
-const INTERVAL_MS = 4000;
+const VISIBLE_MS = 5000;
 
 /**
- * An iOS notification cycling through the demo brands. New ones slide in from
- * the left and leave to the right, as on iOS 27.
+ * An iOS notification cycling through the demo brands. Each one drops in from
+ * above, stays a moment, then rises back up before the next one comes down.
  */
 export function HeroNotifications() {
 	const [index, setIndex] = useState(0);
-	const [leaving, setLeaving] = useState<number | null>(null);
+	const [phase, setPhase] = useState<"idle" | "in" | "out">("idle");
 
 	useEffect(() => {
-		const timer = setTimeout(() => {
-			setLeaving(index);
-			setIndex((index + 1) % NOTIFICATIONS.length);
-		}, INTERVAL_MS);
+		if (phase === "out") return;
+		const timer = setTimeout(() => setPhase("out"), VISIBLE_MS);
 		return () => clearTimeout(timer);
-	}, [index]);
+	}, [phase]);
 
 	return (
-		// Clips the slide sideways only, so it never widens the page while the
-		// shadow below stays whole; the padding leaves room for its sides.
-		<div className="-mx-4 overflow-x-clip px-4">
-			<div className="relative">
-				{leaving !== null && (
-					<Notification
-						key={`out-${leaving}`}
-						{...NOTIFICATIONS[leaving]}
-						className="absolute inset-x-0 top-0 animate-notification-out"
-						onAnimationEnd={() => setLeaving(null)}
-					/>
-				)}
-				<Notification
-					key={`in-${index}`}
-					{...NOTIFICATIONS[index]}
-					className={leaving === null ? undefined : "animate-notification-in"}
-				/>
-			</div>
-		</div>
+		<Notification
+			key={index}
+			{...NOTIFICATIONS[index]}
+			className={
+				phase === "in"
+					? "animate-notification-in"
+					: phase === "out"
+						? "animate-notification-out"
+						: undefined
+			}
+			onAnimationEnd={() => {
+				if (phase !== "out") return;
+				setIndex((index + 1) % NOTIFICATIONS.length);
+				setPhase("in");
+			}}
+		/>
 	);
 }
 

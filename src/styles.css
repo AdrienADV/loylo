@@ -180,18 +180,18 @@ body {
   }
 }
 
-/* Hero notification: arrives from the left and leaves to the right, as on iOS 27. */
+/* Hero notification: drops in from above and rises back up, as on iOS. */
 @keyframes notification-in {
   from {
     opacity: 0;
-    transform: translateX(-110%) scale(0.96);
+    transform: translateY(-40px) scale(0.97);
   }
 }
 
 @keyframes notification-out {
   to {
     opacity: 0;
-    transform: translateX(110%) scale(0.96);
+    transform: translateY(-40px) scale(0.97);
   }
 }
 
@@ -208,7 +208,7 @@ body {
 }
 
 @utility animate-notification-in {
-  animation: notification-in 600ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: notification-in 800ms cubic-bezier(0.32, 0.72, 0, 1) both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: notification-fade-in 300ms ease both;
@@ -216,7 +216,7 @@ body {
 }
 
 @utility animate-notification-out {
-  animation: notification-out 500ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: notification-out 600ms cubic-bezier(0.4, 0, 1, 1) both;
 
   @media (prefers-reduced-motion: reduce) {
     animation: notification-fade-out 300ms ease both;

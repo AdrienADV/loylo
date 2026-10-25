@@ -8,7 +8,6 @@ import {
 	type ProgramKind,
 } from "#/features/programs/programs.schemas";
 import {
-	STAMP_COUNTS,
 	STAMP_IMAGE_NAMES,
 	STAMP_IMAGE_SIZE,
 	type StampIcon,
@@ -71,8 +70,6 @@ export interface ProgramView {
 	/** What a full stamp card gives. */
 	stampReward: string | null;
 	stampIcon: StampIcon | null;
-	/** The card with 0 to 10 stamps, by number of stamps. */
-	stampImageUrls: string[] | null;
 }
 
 function imageUrl(supabase: Supabase, folder: string, name: string) {
@@ -84,7 +81,6 @@ export function toProgramView(
 	supabase: Supabase,
 	row: ProgramRow,
 ): ProgramView {
-	const stampFolder = row.stamp_images_path;
 	return {
 		id: row.id,
 		name: row.name,
@@ -100,11 +96,6 @@ export function toProgramView(
 		stampReward: row.stamp_reward,
 		// An icon removed from the catalog shows as none: the form asks again.
 		stampIcon: stampIconSchema.safeParse(row.stamp_icon).data ?? null,
-		stampImageUrls: stampFolder
-			? STAMP_COUNTS.map((stamps) =>
-					stampImageUrl(supabase, stampFolder, stamps),
-				)
-			: null,
 	};
 }
 

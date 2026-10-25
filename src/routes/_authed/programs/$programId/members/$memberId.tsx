@@ -63,15 +63,21 @@ export const Route = createFileRoute(
 		before: z.int().positive().optional().catch(undefined),
 	}),
 	loaderDeps: ({ search }) => ({ before: search.before }),
-	// Not awaited: the page shows at once, with skeletons until the data comes.
-	loader: ({ params, deps, parentMatchPromise }) => {
+	// Not awaited on entry: the page shows at once, with skeletons until the
+	// data comes. On a reload in place (a points or stamps change, another
+	// history page), the member is awaited instead: the page keeps showing the
+	// previous one until then, and only the history goes back to skeletons.
+	loader: async ({ params, deps, parentMatchPromise, cause }) => {
 		const ids = z
 			.object({ programId: z.uuid(), memberId: z.uuid() })
 			.safeParse(params);
 		if (!ids.success) {
 			throw notFound();
 		}
-		const member = getMember({ data: ids.data });
+		const member =
+			cause === "stay"
+				? fulfilled(await getMember({ data: ids.data }))
+				: getMember({ data: ids.data });
 		// Points and stamps have their own history: the program tells which.
 		const transactions = parentMatchPromise.then(({ loaderData: program }) =>
 			listTransactions({
@@ -95,6 +101,17 @@ export const Route = createFileRoute(
 		<p className="text-muted-foreground">This member does not exist.</p>
 	),
 });
+
+/**
+ * A promise React reads at once (`use` checks `status`), so `Await` renders
+ * its value without showing the fallback first.
+ */
+function fulfilled<T>(value: T): Promise<T> {
+	return Object.assign(Promise.resolve(value), {
+		status: "fulfilled" as const,
+		value,
+	});
+}
 
 function MemberPage() {
 	const program = programRoute.useLoaderData();
@@ -221,7 +238,6 @@ function StampsBalance({
 	/** The member whose wallet cards missed the last stamps change. */
 	const [syncFailedFor, setSyncFailedFor] = useState<string | null>(null);
 	const full = member.stamps === STAMPS_PER_CARD;
-	const cardImageUrl = program.stampImageUrls?.[member.stamps];
 
 	return (
 		<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
@@ -230,14 +246,6 @@ function StampsBalance({
 					<span className="text-muted-foreground text-sm">Stamp card</span>
 					<WalletStatus wallets={member.wallets} />
 				</div>
-				{cardImageUrl ? (
-					<img
-						src={cardImageUrl}
-						alt={`${member.stamps} of ${STAMPS_PER_CARD} stamps`}
-						className="aspect-[1125/369] w-full rounded-xl"
-						style={{ backgroundColor: program.backgroundColor }}
-					/>
-				) : null}
 				<div className="flex flex-wrap items-baseline justify-between gap-2">
 					<div className="font-semibold text-4xl tabular-nums">
 						{formatStampBalance(member.stamps, STAMPS_PER_CARD)}{" "}

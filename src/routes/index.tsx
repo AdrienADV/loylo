@@ -15,8 +15,7 @@ import { useCallback } from "react";
 import { z } from "zod";
 
 import { ARTICLES, formatArticleDate } from "#/features/blog/articles";
-import { NotificationPreview } from "#/features/notifications/components/notification-preview";
-import { PassPreview } from "#/features/programs/components/pass-preview";
+import { HeroNotifications } from "#/features/site/components/hero-notifications";
 import { Pricing } from "#/features/site/components/pricing";
 import {
 	DISPLAY_HEADING,
@@ -263,6 +262,22 @@ function Hero() {
 	);
 }
 
+/**
+ * Real Wallet passes, from `scripts/demo-passes` (screenshots of the
+ * `.pkpass` files served next to them).
+ */
+function HeroPass({ slug }: { slug: string }) {
+	return (
+		<img
+			src={`/demo-passes/${slug}.webp`}
+			alt=""
+			width={640}
+			height={898}
+			className="h-auto w-full rounded-xl shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_18px_40px_-14px_rgb(0_0_0/0.45)]"
+		/>
+	);
+}
+
 /** Three cards fanned out, with the notification a message sends. */
 function HeroCards() {
 	return (
@@ -272,38 +287,16 @@ function HeroCards() {
 			className="relative mx-auto h-[25rem] w-full max-w-[26rem] animate-enter sm:h-[28rem]"
 		>
 			<div className="absolute top-6 left-0 w-52 -rotate-[8deg] sm:w-60">
-				<PassPreview
-					name="Rise Bakery"
-					backgroundColor="#c9a227"
-					points={34}
-					logoUrl={null}
-					memberName="Sam Carter"
-				/>
+				<HeroPass slug="starbucks" />
 			</div>
 			<div className="absolute top-2 right-0 w-52 rotate-[7deg] sm:w-60">
-				<PassPreview
-					name="Smash Wagon"
-					backgroundColor="#e4572e"
-					points={6}
-					logoUrl={null}
-					memberName="Léa Martin"
-				/>
+				<HeroPass slug="mcdonalds" />
 			</div>
 			<div className="absolute top-10 left-1/2 w-56 -translate-x-1/2 sm:w-64">
-				<PassPreview
-					name="Bean There Cafe"
-					backgroundColor="#6b3f2a"
-					points={9}
-					logoUrl={null}
-				/>
+				<HeroPass slug="fika-coffee" />
 			</div>
-			<div className="absolute right-0 bottom-0 left-0 mx-auto max-w-80 rounded-[1.75rem] bg-card/90 shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_16px_40px_-12px_rgb(0_0_0/0.3)] backdrop-blur">
-				<NotificationPreview
-					programName="Bean There Cafe"
-					backgroundColor="#6b3f2a"
-					logoUrl={null}
-					message="One more coffee and the next one is on us ☕"
-				/>
+			<div className="absolute right-0 bottom-0 left-0">
+				<HeroNotifications />
 			</div>
 		</div>
 	);

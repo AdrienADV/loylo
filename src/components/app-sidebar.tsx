@@ -1,15 +1,14 @@
-import {
-	RiGroupLine,
-	RiMessage2Line,
-	RiSettings3Line,
-	RiShareForwardLine,
-	RiTeamLine,
-	RiUserAddLine,
-} from "@remixicon/react";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 
 import { ProgramSwitcher } from "#/features/programs/components/program-switcher";
 import type { TeamProgramView } from "#/features/programs/programs.server";
+import { CreditCardIcon } from "@/components/animate-ui/icons/credit-card";
+import { ForwardIcon } from "@/components/animate-ui/icons/forward";
+import { MessageSquareIcon } from "@/components/animate-ui/icons/message-square";
+import { SettingsIcon } from "@/components/animate-ui/icons/settings";
+import { UsersIcon } from "@/components/animate-ui/icons/users";
+import { UsersRoundIcon } from "@/components/animate-ui/icons/users-round";
 import { NavUser } from "@/components/nav-user";
 import {
 	Sidebar,
@@ -61,33 +60,33 @@ const programLinks = [
 	{
 		title: "Members",
 		to: "/programs/$programId",
-		icon: RiGroupLine,
+		icon: UsersIcon,
 		exact: true,
 	},
 	{
 		title: "Issue a card",
 		to: "/programs/$programId/members/new",
-		icon: RiUserAddLine,
+		icon: CreditCardIcon,
 	},
 	{
 		title: "Messages",
 		to: "/programs/$programId/notifications",
-		icon: RiMessage2Line,
+		icon: MessageSquareIcon,
 	},
 	{
 		title: "Share",
 		to: "/programs/$programId/share",
-		icon: RiShareForwardLine,
+		icon: ForwardIcon,
 	},
 	{
 		title: "Team",
 		to: "/programs/$programId/team",
-		icon: RiTeamLine,
+		icon: UsersRoundIcon,
 	},
 	{
 		title: "Settings",
 		to: "/programs/$programId/settings",
-		icon: RiSettings3Line,
+		icon: SettingsIcon,
 		adminOnly: true,
 	},
 ] as const;
@@ -126,16 +125,19 @@ function ProgramNav({
 								) ||
 								("exact" in link && onMemberPage);
 							return (
-								<SidebarMenuItem key={link.to}>
-									<SidebarMenuButton
-										tooltip={link.title}
-										isActive={isActive}
-										render={<Link to={link.to} params={params} />}
-									>
-										<link.icon />
-										<span>{link.title}</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
+								// The icon plays while the whole item is hovered.
+								<AnimateIcon key={link.to} animateOnHover asChild>
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											tooltip={link.title}
+											isActive={isActive}
+											render={<Link to={link.to} params={params} />}
+										>
+											<link.icon />
+											<span>{link.title}</span>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								</AnimateIcon>
 							);
 						})}
 				</SidebarMenu>

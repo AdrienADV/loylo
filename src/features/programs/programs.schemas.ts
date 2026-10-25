@@ -79,8 +79,9 @@ export const programIdSchema = z.object({ programId: z.uuid() });
 export const PROGRAM_IMAGES = {
 	"apple-icon.png": { width: 29, height: 29, fit: "square" },
 	"apple-icon@2x.png": { width: 58, height: 58, fit: "square" },
-	"apple-logo.png": { width: 160, height: 50, fit: "within" },
-	"apple-logo@2x.png": { width: 320, height: 100, fit: "within" },
+	// Wallet allows 160×50 points; a lower logo leaves room above and below.
+	"apple-logo.png": { width: 160, height: 40, fit: "within" },
+	"apple-logo@2x.png": { width: 320, height: 80, fit: "within" },
 	"google-logo.png": { width: 660, height: 660, fit: "square" },
 } as const;
 

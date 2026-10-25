@@ -23,13 +23,15 @@ export interface StampCardDesign {
 
 const COLUMNS = 5;
 const ROWS = STAMPS_PER_CARD / COLUMNS;
-const PADDING_X = 60;
+// Wallet scales the strip up to fill a taller area and crops its sides
+// (about 100 px each at this size): the stamps stay well inside.
+const PADDING_X = 165;
 const PADDING_Y = 24;
 const CELL_WIDTH = (STAMP_IMAGE_SIZE.width - 2 * PADDING_X) / COLUMNS;
 const CELL_HEIGHT = (STAMP_IMAGE_SIZE.height - 2 * PADDING_Y) / ROWS;
-const RADIUS = 68;
-const ICON_SIZE = 76;
-const EMPTY_LINE_WIDTH = 6;
+const RADIUS = 60;
+const ICON_SIZE = 64;
+const EMPTY_LINE_WIDTH = 5;
 
 function drawIcon(
 	context: CanvasRenderingContext2D,

@@ -38,8 +38,6 @@ export interface ProgramFormValues {
 	stampReward: string | null;
 	stampIcon: StampIcon | null;
 	logoUrl: string | null;
-	/** Whether the program already has its stamp card images. */
-	stampImageUrls: string[] | null;
 }
 
 const EMPTY_VALUES: ProgramFormValues = {
@@ -51,7 +49,6 @@ const EMPTY_VALUES: ProgramFormValues = {
 	stampReward: null,
 	stampIcon: null,
 	logoUrl: null,
-	stampImageUrls: null,
 };
 
 const KIND_OPTIONS: {
@@ -78,7 +75,7 @@ const SEGMENT_CLASS =
 /**
  * Program fields with a live pass preview. Sends a FormData with the fields
  * and, when a logo was chosen, the images generated from it; for a stamp card,
- * also its images whenever its design (icon, color) changes. The kind is only
+ * also its images. The kind is only
  * chosen on creation (`kindEditable`).
  */
 export function ProgramForm({
@@ -114,15 +111,6 @@ export function ProgramForm({
 	const [logoFile, setLogoFile] = useState<File | null>(null);
 	const logoInput = useRef<HTMLInputElement>(null);
 	const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
-	/** The stamp card design the saved images show, if any. */
-	const [savedStampDesign, setSavedStampDesign] = useState(
-		initialValues.stampImageUrls && initialValues.stampIcon
-			? {
-					backgroundColor: initialValues.backgroundColor,
-					icon: initialValues.stampIcon,
-				}
-			: null,
-	);
 
 	useEffect(() => {
 		if (!logoFile) {
@@ -154,27 +142,23 @@ export function ProgramForm({
 		} else if (!initialValues.logoUrl) {
 			throw new Error("Add a logo.");
 		}
-		const stampDesign =
-			fields.kind === "stamps"
-				? { backgroundColor: fields.backgroundColor, icon: fields.stampIcon }
-				: null;
-		if (
-			stampDesign &&
-			(stampDesign.backgroundColor !== savedStampDesign?.backgroundColor ||
-				stampDesign.icon !== savedStampDesign.icon)
-		) {
-			const images = await renderStampImages(stampDesign);
+		// Drawn again on every save: saving also brings older cards to the
+		// current drawing.
+		if (fields.kind === "stamps") {
+			const images = await renderStampImages({
+				backgroundColor: fields.backgroundColor,
+				icon: fields.stampIcon,
+			});
 			for (const [imageName, blob] of Object.entries(images)) {
 				formData.set(imageName, blob, imageName);
 			}
 		}
 		await onSubmit(formData);
-		// Saved: the next submit only re-uploads images that change again.
+		// Saved: the next submit only re-uploads the logo if another one is chosen.
 		setLogoFile(null);
 		if (logoInput.current) {
 			logoInput.current.value = "";
 		}
-		setSavedStampDesign(stampDesign);
 	});
 
 	return (

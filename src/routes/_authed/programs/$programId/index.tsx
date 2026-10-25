@@ -65,6 +65,7 @@ function ProgramOverviewPage() {
 	// instead of their skeletons.
 	const stats = useDeferredValue(Route.useLoaderData().stats);
 	const { walletSync } = Route.useSearch();
+	const { kind } = programRoute.useLoaderData();
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -74,8 +75,8 @@ function ProgramOverviewPage() {
 					again from the settings to retry.
 				</FormAlert>
 			) : null}
-			<Await promise={stats} fallback={<ProgramStatsSkeleton />}>
-				{(stats) => <ProgramStats stats={stats} />}
+			<Await promise={stats} fallback={<ProgramStatsSkeleton kind={kind} />}>
+				{(stats) => <ProgramStats stats={stats} kind={kind} />}
 			</Await>
 			<Members />
 		</div>
@@ -119,11 +120,18 @@ function Members() {
 					</form>
 				</search>
 			</div>
-			<Await promise={page} fallback={<MemberListSkeleton />}>
+			<Await
+				promise={page}
+				fallback={<MemberListSkeleton kind={program.kind} />}
+			>
 				{({ members, nextCursor }) => (
 					<>
 						{members.length > 0 ? (
-							<MemberList programId={program.id} members={members} />
+							<MemberList
+								programId={program.id}
+								kind={program.kind}
+								members={members}
+							/>
 						) : (
 							<p className="text-muted-foreground text-sm">
 								{q

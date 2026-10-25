@@ -21,6 +21,7 @@ function NewProgramPage() {
 				</p>
 			</div>
 			<ProgramForm
+				kindEditable
 				submitLabel="Create the program"
 				pendingLabel="Creating…"
 				onSubmit={async (formData) => {

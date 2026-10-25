@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { NotificationPreview } from "#/features/notifications/components/notification-preview";
 import {
 	MAX_MESSAGE_LENGTH,
 	notificationFieldsSchema,
@@ -14,20 +13,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * Writes a message with a live preview. Sending takes a confirmation: it
- * reaches every customer and cannot be undone.
+ * Writes a message. The page owns the text so it can preview it as it is
+ * typed. Sending takes a confirmation: it reaches every customer and cannot
+ * be undone.
  */
 export function NotificationForm({
-	program,
+	message,
+	onMessageChange,
 	disabled,
 	onSend,
 }: {
-	program: { name: string; backgroundColor: string; logoUrl: string | null };
+	message: string;
+	onMessageChange: (message: string) => void;
 	/** The sending rules do not allow a message now. */
 	disabled: boolean;
 	onSend: (message: string) => Promise<void>;
 }) {
-	const [message, setMessage] = useState("");
 	const [confirming, setConfirming] = useState(false);
 	const form = useSchemaForm(notificationFieldsSchema, async (fields) => {
 		if (!confirming) {
@@ -36,7 +37,7 @@ export function NotificationForm({
 		}
 		try {
 			await onSend(fields.message);
-			setMessage("");
+			onMessageChange("");
 		} finally {
 			setConfirming(false);
 		}
@@ -58,7 +59,7 @@ export function NotificationForm({
 					rows={3}
 					maxLength={MAX_MESSAGE_LENGTH}
 					value={message}
-					onChange={(event) => setMessage(event.target.value)}
+					onChange={(event) => onMessageChange(event.target.value)}
 					readOnly={confirming}
 					disabled={disabled}
 					placeholder="Double points on every coffee this weekend!"
@@ -66,12 +67,6 @@ export function NotificationForm({
 				/>
 				<FieldError>{form.fieldErrors.message}</FieldError>
 			</Field>
-			<NotificationPreview
-				programName={program.name}
-				backgroundColor={program.backgroundColor}
-				logoUrl={program.logoUrl}
-				message={message}
-			/>
 			{confirming ? (
 				<div className="flex flex-col gap-3 rounded-2xl border p-4">
 					<p className="text-sm">
@@ -102,11 +97,7 @@ export function NotificationForm({
 }
 
 /** `NotificationForm` while the sending rules load. */
-export function NotificationFormSkeleton({
-	program,
-}: {
-	program: { name: string; backgroundColor: string; logoUrl: string | null };
-}) {
+export function NotificationFormSkeleton() {
 	return (
 		<div aria-hidden className="flex flex-col gap-4">
 			<Field>
@@ -118,12 +109,6 @@ export function NotificationFormSkeleton({
 				</div>
 				<Skeleton className="h-16" />
 			</Field>
-			<NotificationPreview
-				programName={program.name}
-				backgroundColor={program.backgroundColor}
-				logoUrl={program.logoUrl}
-				message=""
-			/>
 			<SkeletonButton className="self-start">
 				Send to all members
 			</SkeletonButton>

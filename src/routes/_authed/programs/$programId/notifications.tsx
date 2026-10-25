@@ -12,6 +12,7 @@ import {
 	NotificationForm,
 	NotificationFormSkeleton,
 } from "#/features/notifications/components/notification-form";
+import { NotificationPreview } from "#/features/notifications/components/notification-preview";
 import {
 	getNotificationQuota,
 	listNotifications,
@@ -54,6 +55,7 @@ function NotificationsPage() {
 	const router = useRouter();
 	const sendNotificationFn = useServerFn(sendNotification);
 	const [walletSync, setWalletSync] = useState<WalletSyncResult | null>(null);
+	const [message, setMessage] = useState("");
 
 	return (
 		<div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
@@ -70,7 +72,7 @@ function NotificationsPage() {
 					fallback={
 						<>
 							<QuotaSummarySkeleton />
-							<NotificationFormSkeleton program={program} />
+							<NotificationFormSkeleton />
 						</>
 					}
 				>
@@ -89,7 +91,8 @@ function NotificationsPage() {
 									/>
 								) : null}
 								<NotificationForm
-									program={program}
+									message={message}
+									onMessageChange={setMessage}
 									disabled={quota.availableAt !== null}
 									onSend={async (message) => {
 										setWalletSync(null);
@@ -111,7 +114,18 @@ function NotificationsPage() {
 					}
 				</Await>
 			</section>
-			<History notifications={notifications} />
+			<aside className="flex flex-col gap-8">
+				<div className="flex flex-col gap-3">
+					<h3 className="font-semibold">Preview</h3>
+					<NotificationPreview
+						programName={program.name}
+						backgroundColor={program.backgroundColor}
+						logoUrl={program.logoUrl}
+						message={message}
+					/>
+				</div>
+				<History notifications={notifications} />
+			</aside>
 		</div>
 	);
 }
@@ -195,12 +209,12 @@ function History({
 	notifications: Promise<NotificationView[]>;
 }) {
 	return (
-		<aside className="flex flex-col gap-3">
+		<section className="flex flex-col gap-3">
 			<h3 className="font-semibold">Sent messages</h3>
 			<Await promise={notifications} fallback={<SentMessagesSkeleton />}>
 				{(notifications) => <SentMessages notifications={notifications} />}
 			</Await>
-		</aside>
+		</section>
 	);
 }
 

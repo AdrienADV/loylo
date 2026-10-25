@@ -10,7 +10,7 @@ import { type FormEvent, useDeferredValue } from "react";
 import { z } from "zod";
 import {
 	MemberList,
-	MemberListSkeleton,
+	MemberListLoader,
 } from "#/features/members/components/member-list";
 import {
 	ProgramStats,
@@ -120,10 +120,7 @@ function Members() {
 					</form>
 				</search>
 			</div>
-			<Await
-				promise={page}
-				fallback={<MemberListSkeleton kind={program.kind} />}
-			>
+			<Await promise={page} fallback={<MemberListLoader />}>
 				{({ members, nextCursor }) => (
 					<>
 						{members.length > 0 ? (

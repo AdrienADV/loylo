@@ -5,8 +5,7 @@ import type { MemberListItem } from "#/features/members/members.server";
 import type { ProgramKind } from "#/features/programs/programs.schemas";
 import { STAMPS_PER_CARD } from "#/features/programs/stamp-card";
 import { formatStampBalance } from "#/lib/wallet/balance";
-import { SkeletonText } from "@/components/skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 export function MemberList({
 	programId,
@@ -53,37 +52,10 @@ export function MemberList({
 }
 
 /** `MemberList` while the members load. */
-export function MemberListSkeleton({
-	kind,
-	rows = 5,
-}: {
-	kind: ProgramKind;
-	rows?: number;
-}) {
+export function MemberListLoader() {
 	return (
-		<ul
-			aria-hidden
-			className="divide-y overflow-hidden rounded-2xl border bg-surface"
-		>
-			{Array.from({ length: rows }, (_, index) => (
-				<li
-					// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
-					key={index}
-					className="flex items-center justify-between gap-4 px-4 py-3"
-				>
-					<div className="flex min-w-0 flex-col gap-1">
-						<SkeletonText className="w-32" />
-						<SkeletonText className="w-48 text-sm" />
-						<span className="flex flex-wrap gap-1.5">
-							<Skeleton className="h-5 w-36 rounded-full" />
-						</span>
-					</div>
-					<span className="flex shrink-0 flex-col items-end">
-						<SkeletonText className="w-8 text-lg" />
-						<span className="text-muted-foreground text-xs">{kind}</span>
-					</span>
-				</li>
-			))}
-		</ul>
+		<div className="flex justify-center rounded-2xl border bg-surface py-12">
+			<Spinner className="size-6 text-muted-foreground" />
+		</div>
 	);
 }

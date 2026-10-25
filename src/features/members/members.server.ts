@@ -5,7 +5,7 @@ import {
 } from "#/features/members/members.schemas";
 import type { Database, Tables } from "#/lib/supabase/database.types";
 
-/** What the merchant's pages receive about members, their passes and points. */
+/** What the merchant's pages receive about members, their passes and balances. */
 
 export const MEMBERS_PAGE_SIZE = 25;
 export const TRANSACTIONS_PAGE_SIZE = 20;
@@ -57,17 +57,28 @@ function walletStates(passes: PassRow[]): WalletState[] {
 
 type MemberRow = Pick<
 	Tables<"members">,
-	"id" | "first_name" | "last_name" | "email" | "points" | "created_at"
+	| "id"
+	| "first_name"
+	| "last_name"
+	| "email"
+	| "points"
+	| "stamps"
+	| "stamp_rewards"
+	| "created_at"
 >;
 
 export const MEMBER_LIST_COLUMNS =
-	"id, first_name, last_name, email, points, created_at, wallet_passes(provider, installed_at, uninstalled_at)" as const;
+	"id, first_name, last_name, email, points, stamps, stamp_rewards, created_at, wallet_passes(provider, installed_at, uninstalled_at)" as const;
 
 export interface MemberListItem {
 	id: string;
 	name: string;
 	email: string;
+	/** Only the balance of the program's kind means something. */
 	points: number;
+	stamps: number;
+	/** Full stamp cards exchanged for the reward. */
+	stampRewards: number;
 	createdAt: string;
 	wallets: WalletState[];
 }
@@ -80,6 +91,8 @@ export function toMemberListItem(
 		name: `${row.first_name} ${row.last_name}`,
 		email: row.email,
 		points: row.points,
+		stamps: row.stamps,
+		stampRewards: row.stamp_rewards,
 		createdAt: row.created_at,
 		wallets: walletStates(row.wallet_passes),
 	};
@@ -94,7 +107,7 @@ export function nextMemberCursor(rows: MemberRow[]): string | null {
 }
 
 export const MEMBER_COLUMNS =
-	"id, first_name, last_name, email, points, created_at, wallet_passes(id, provider, created_at, installed_at, uninstalled_at)" as const;
+	"id, first_name, last_name, email, points, stamps, stamp_rewards, created_at, wallet_passes(id, provider, created_at, installed_at, uninstalled_at)" as const;
 
 export interface MemberPassView {
 	id: string;
@@ -112,6 +125,8 @@ export interface MemberView {
 	name: string;
 	email: string;
 	points: number;
+	stamps: number;
+	stampRewards: number;
 	createdAt: string;
 	passes: MemberPassView[];
 	/** One state per wallet, as in the member list. */
@@ -129,6 +144,8 @@ export function toMemberView(
 		name: `${row.first_name} ${row.last_name}`,
 		email: row.email,
 		points: row.points,
+		stamps: row.stamps,
+		stampRewards: row.stamp_rewards,
 		createdAt: row.created_at,
 		passes: row.wallet_passes.map((pass) => ({
 			id: pass.id,
@@ -146,7 +163,7 @@ export const TRANSACTION_COLUMNS =
 	"id, kind, delta, balance_after, created_at" as const;
 
 type TransactionRow = Pick<
-	Tables<"point_transactions">,
+	Tables<"point_transactions"> | Tables<"stamp_transactions">,
 	"id" | "kind" | "delta" | "balance_after" | "created_at"
 >;
 
@@ -177,9 +194,11 @@ export interface ProgramStats {
 	newMembers: number;
 	/** Members with at least one pass installed in a wallet. */
 	membersInWallet: number;
-	/** Point additions in the last 30 days: roughly, rewarded visits. */
+	/**
+	 * Point or stamp additions in the last 30 days: roughly, rewarded visits.
+	 */
 	pointAdditions: number;
-	/** Point redemptions in the last 30 days. */
+	/** Point redemptions, or full stamp cards exchanged, in the last 30 days. */
 	redemptions: number;
 }
 

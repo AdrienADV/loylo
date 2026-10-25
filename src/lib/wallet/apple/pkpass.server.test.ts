@@ -48,7 +48,10 @@ const passInput = {
 		backgroundColor: "#1D4FD7",
 		message: null,
 	},
-	member: { name: "Ada Lovelace", points: 120 },
+	member: {
+		name: "Ada Lovelace",
+		balance: { kind: "points" as const, points: 120 },
+	},
 	pass: {
 		serialNumber: "3f8a1c2e9b7d4f60a5e1c3b2d4f6a8c0",
 		authenticationToken: "b1946ac92492d2347c6235b4d2611184",

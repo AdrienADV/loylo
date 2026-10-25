@@ -1,11 +1,11 @@
 import { importPKCS8, SignJWT } from "jose";
 import { z } from "zod";
 
-import {
-	buildLoyaltyPoints,
-	type GoogleLoyaltyClass,
-	type GoogleLoyaltyObject,
-	type GoogleMessage,
+import type {
+	GoogleLoyaltyBalance,
+	GoogleLoyaltyClass,
+	GoogleLoyaltyObject,
+	GoogleMessage,
 } from "#/lib/wallet/google/objects";
 
 /** Google Wallet REST API, authenticated with a service account. */
@@ -149,14 +149,16 @@ export function createGoogleWalletClient(serviceAccount: GoogleServiceAccount) {
 			return upsert("loyaltyObject", loyaltyObject);
 		},
 
-		async setLoyaltyPoints(objectId: string, points: number): Promise<void> {
+		/** Updates the points or stamps an object shows (`buildLoyaltyBalance`). */
+		async setLoyaltyBalance(
+			objectId: string,
+			balance: GoogleLoyaltyBalance,
+		): Promise<void> {
 			await expectOk(
 				await request(
 					"PATCH",
 					`/loyaltyObject/${encodeURIComponent(objectId)}`,
-					{
-						loyaltyPoints: buildLoyaltyPoints(points),
-					},
+					balance,
 				),
 			);
 		},

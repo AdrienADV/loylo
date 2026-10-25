@@ -73,7 +73,7 @@ function ScanPage() {
 				<h2 className="font-semibold text-lg">Scan a card</h2>
 				<p className="text-muted-foreground text-sm">
 					Point the camera at the QR code on the customer's card to open their
-					points.
+					balance.
 				</p>
 			</div>
 			<QrScanner onScan={handleScan} paused={opening || form.pending} />

@@ -10,6 +10,7 @@ import {
 	listAvailableWallets,
 } from "#/features/members/members.functions";
 import { PassPreview } from "#/features/programs/components/pass-preview";
+import { welcomeText } from "#/features/programs/program-welcome";
 import { getAppOrigin } from "#/lib/app-origin";
 import { CopyButton } from "@/components/copy-button";
 import { FormAlert } from "@/components/form-alert";
@@ -95,10 +96,20 @@ function IssuePassPage() {
 					name={program.name}
 					backgroundColor={program.backgroundColor}
 					points={program.initialPoints}
+					stamps={
+						program.kind === "stamps"
+							? {
+									stamps: program.initialStamps,
+									icon: program.stampIcon ?? "cup",
+									reward: program.stampReward ?? "",
+								}
+							: undefined
+					}
 					logoUrl={program.logoUrl}
 				/>
 				<p className="text-muted-foreground text-sm">
-					New members start with {program.initialPoints} points.
+					{welcomeText(program, "New members") ||
+						"New members start with 0 points."}
 				</p>
 			</aside>
 		</div>
@@ -121,7 +132,7 @@ function IssuedPassCard({
 				<p className="text-muted-foreground text-sm">
 					{issued.memberCreated
 						? "Ask the customer to scan this code with their phone's camera to add the card, or send them the link."
-						: "This email was already a member: the new card keeps their points. Ask the customer to scan this code with their phone's camera, or send them the link."}
+						: "This email was already a member: the new card keeps their balance. Ask the customer to scan this code with their phone's camera, or send them the link."}
 				</p>
 			</div>
 			<QrCode

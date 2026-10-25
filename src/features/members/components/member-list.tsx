@@ -2,14 +2,19 @@ import { Link } from "@tanstack/react-router";
 
 import { WalletStateBadge } from "#/features/members/components/wallet-state-badge";
 import type { MemberListItem } from "#/features/members/members.server";
+import type { ProgramKind } from "#/features/programs/programs.schemas";
+import { STAMPS_PER_CARD } from "#/features/programs/stamp-card";
+import { formatStampBalance } from "#/lib/wallet/balance";
 import { SkeletonText } from "@/components/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function MemberList({
 	programId,
+	kind,
 	members,
 }: {
 	programId: string;
+	kind: ProgramKind;
 	members: MemberListItem[];
 }) {
 	return (
@@ -34,9 +39,11 @@ export function MemberList({
 						</div>
 						<span className="flex shrink-0 flex-col items-end">
 							<span className="font-semibold text-lg tabular-nums">
-								{member.points}
+								{kind === "stamps"
+									? formatStampBalance(member.stamps, STAMPS_PER_CARD)
+									: member.points}
 							</span>
-							<span className="text-muted-foreground text-xs">points</span>
+							<span className="text-muted-foreground text-xs">{kind}</span>
 						</span>
 					</Link>
 				</li>
@@ -46,7 +53,13 @@ export function MemberList({
 }
 
 /** `MemberList` while the members load. */
-export function MemberListSkeleton({ rows = 5 }: { rows?: number }) {
+export function MemberListSkeleton({
+	kind,
+	rows = 5,
+}: {
+	kind: ProgramKind;
+	rows?: number;
+}) {
 	return (
 		<ul
 			aria-hidden
@@ -67,7 +80,7 @@ export function MemberListSkeleton({ rows = 5 }: { rows?: number }) {
 					</div>
 					<span className="flex shrink-0 flex-col items-end">
 						<SkeletonText className="w-8 text-lg" />
-						<span className="text-muted-foreground text-xs">points</span>
+						<span className="text-muted-foreground text-xs">{kind}</span>
 					</span>
 				</li>
 			))}

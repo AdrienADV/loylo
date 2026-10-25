@@ -18,7 +18,9 @@ type ApplePassImageName =
 	| "icon.png"
 	| "icon@2x.png"
 	| "logo.png"
-	| "logo@2x.png";
+	| "logo@2x.png"
+	// Stamp cards: the card with the member's stamps.
+	| "strip@3x.png";
 
 /** PNG files of the pass. Wallet refuses passes without `icon.png`. */
 export type ApplePassImages = Record<"icon.png", Uint8Array> &

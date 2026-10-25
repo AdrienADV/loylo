@@ -29,6 +29,14 @@ export function HeroNotifications() {
 	const [index, setIndex] = useState(0);
 	const [phase, setPhase] = useState<"idle" | "in" | "out">("idle");
 
+	// Loads every icon up front, so the next notification never drops in
+	// before its icon.
+	useEffect(() => {
+		for (const { slug } of NOTIFICATIONS) {
+			new Image().src = `/demo-passes/${slug}-icon.png`;
+		}
+	}, []);
+
 	useEffect(() => {
 		if (phase === "out") return;
 		const timer = setTimeout(() => setPhase("out"), VISIBLE_MS);

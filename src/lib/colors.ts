@@ -18,6 +18,21 @@ export function hexToRgb(color: HexColor): Rgb {
 	return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
 }
 
+/** Mixes `amount` (0 to 1) of `to` into `from`, as an opaque color. */
+export function mixColors(
+	from: HexColor,
+	to: HexColor,
+	amount: number,
+): HexColor {
+	const a = hexToRgb(from);
+	const b = hexToRgb(to);
+	const channel = (x: number, y: number) =>
+		Math.round(x + (y - x) * amount)
+			.toString(16)
+			.padStart(2, "0");
+	return `#${channel(a.r, b.r)}${channel(a.g, b.g)}${channel(a.b, b.b)}`;
+}
+
 /** Formats a color the way Apple Wallet expects it in `pass.json`. */
 export function toCssRgb(color: HexColor): string {
 	const { r, g, b } = hexToRgb(color);

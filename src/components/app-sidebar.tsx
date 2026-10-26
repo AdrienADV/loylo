@@ -3,6 +3,7 @@ import { Link, useMatchRoute } from "@tanstack/react-router";
 
 import { ProgramSwitcher } from "#/features/programs/components/program-switcher";
 import type { TeamProgramView } from "#/features/programs/programs.server";
+import { ChartColumnIcon } from "@/components/animate-ui/icons/chart-column";
 import { CreditCardIcon } from "@/components/animate-ui/icons/credit-card";
 import { ForwardIcon } from "@/components/animate-ui/icons/forward";
 import { MessageSquareIcon } from "@/components/animate-ui/icons/message-square";
@@ -58,10 +59,17 @@ export function AppSidebar({
 
 const programLinks = [
 	{
-		title: "Members",
+		title: "Overview",
 		to: "/programs/$programId",
+		icon: ChartColumnIcon,
+		exact: true,
+	},
+	{
+		title: "Members",
+		to: "/programs/$programId/members",
 		icon: UsersIcon,
 		exact: true,
+		includesMemberPages: true,
 	},
 	{
 		title: "Issue a card",
@@ -123,7 +131,7 @@ function ProgramNav({
 										fuzzy: !("exact" in link),
 									}),
 								) ||
-								("exact" in link && onMemberPage);
+								("includesMemberPages" in link && onMemberPage);
 							return (
 								// The icon plays while the whole item is hovered.
 								<AnimateIcon key={link.to} animateOnHover asChild>

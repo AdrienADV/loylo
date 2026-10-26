@@ -37,6 +37,7 @@ import { Route as AuthedProgramsProgramIdTeamRouteImport } from './routes/_authe
 import { Route as ApiApplePassesSerialNumberRouteImport } from './routes/api/apple/passes/$serialNumber'
 import { Route as ApiAppleV1LogRouteImport } from './routes/api/apple/v1/log'
 import { Route as ApiGooglePassesSerialNumberRouteImport } from './routes/api/google/passes/$serialNumber'
+import { Route as AuthedProgramsProgramIdMembersIndexRouteImport } from './routes/_authed/programs/$programId/members/index'
 import { Route as AuthedProgramsProgramIdMembersMemberIdRouteImport } from './routes/_authed/programs/$programId/members/$memberId'
 import { Route as AuthedProgramsProgramIdMembersNewRouteImport } from './routes/_authed/programs/$programId/members/new'
 import { Route as ApiAppleV1PassesPassTypeIdentifierSerialNumberRouteImport } from './routes/api/apple/v1/passes/$passTypeIdentifier/$serialNumber'
@@ -189,6 +190,12 @@ const ApiGooglePassesSerialNumberRoute =
     path: '/api/google/passes/$serialNumber',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthedProgramsProgramIdMembersIndexRoute =
+  AuthedProgramsProgramIdMembersIndexRouteImport.update({
+    id: '/members/',
+    path: '/members/',
+    getParentRoute: () => AuthedProgramsProgramIdRoute,
+  } as any)
 const AuthedProgramsProgramIdMembersMemberIdRoute =
   AuthedProgramsProgramIdMembersMemberIdRouteImport.update({
     id: '/members/$memberId',
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/programs/$programId/': typeof AuthedProgramsProgramIdIndexRoute
   '/programs/$programId/members/$memberId': typeof AuthedProgramsProgramIdMembersMemberIdRoute
   '/programs/$programId/members/new': typeof AuthedProgramsProgramIdMembersNewRoute
+  '/programs/$programId/members/': typeof AuthedProgramsProgramIdMembersIndexRoute
   '/api/apple/v1/passes/$passTypeIdentifier/$serialNumber': typeof ApiAppleV1PassesPassTypeIdentifierSerialNumberRoute
   '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/$serialNumber': typeof ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierSerialNumberRoute
   '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/': typeof ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierIndexRoute
@@ -285,6 +293,7 @@ export interface FileRoutesByTo {
   '/programs/$programId': typeof AuthedProgramsProgramIdIndexRoute
   '/programs/$programId/members/$memberId': typeof AuthedProgramsProgramIdMembersMemberIdRoute
   '/programs/$programId/members/new': typeof AuthedProgramsProgramIdMembersNewRoute
+  '/programs/$programId/members': typeof AuthedProgramsProgramIdMembersIndexRoute
   '/api/apple/v1/passes/$passTypeIdentifier/$serialNumber': typeof ApiAppleV1PassesPassTypeIdentifierSerialNumberRoute
   '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/$serialNumber': typeof ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierSerialNumberRoute
   '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier': typeof ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierIndexRoute
@@ -321,6 +330,7 @@ export interface FileRoutesById {
   '/_authed/programs/$programId/': typeof AuthedProgramsProgramIdIndexRoute
   '/_authed/programs/$programId/members/$memberId': typeof AuthedProgramsProgramIdMembersMemberIdRoute
   '/_authed/programs/$programId/members/new': typeof AuthedProgramsProgramIdMembersNewRoute
+  '/_authed/programs/$programId/members/': typeof AuthedProgramsProgramIdMembersIndexRoute
   '/api/apple/v1/passes/$passTypeIdentifier/$serialNumber': typeof ApiAppleV1PassesPassTypeIdentifierSerialNumberRoute
   '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/$serialNumber': typeof ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierSerialNumberRoute
   '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/': typeof ApiAppleV1DevicesDeviceLibraryIdentifierRegistrationsPassTypeIdentifierIndexRoute
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/programs/$programId/'
     | '/programs/$programId/members/$memberId'
     | '/programs/$programId/members/new'
+    | '/programs/$programId/members/'
     | '/api/apple/v1/passes/$passTypeIdentifier/$serialNumber'
     | '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/$serialNumber'
     | '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/programs/$programId'
     | '/programs/$programId/members/$memberId'
     | '/programs/$programId/members/new'
+    | '/programs/$programId/members'
     | '/api/apple/v1/passes/$passTypeIdentifier/$serialNumber'
     | '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/$serialNumber'
     | '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier'
@@ -423,6 +435,7 @@ export interface FileRouteTypes {
     | '/_authed/programs/$programId/'
     | '/_authed/programs/$programId/members/$memberId'
     | '/_authed/programs/$programId/members/new'
+    | '/_authed/programs/$programId/members/'
     | '/api/apple/v1/passes/$passTypeIdentifier/$serialNumber'
     | '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/$serialNumber'
     | '/api/apple/v1/devices/$deviceLibraryIdentifier/registrations/$passTypeIdentifier/'
@@ -646,6 +659,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGooglePassesSerialNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/programs/$programId/members/': {
+      id: '/_authed/programs/$programId/members/'
+      path: '/members'
+      fullPath: '/programs/$programId/members/'
+      preLoaderRoute: typeof AuthedProgramsProgramIdMembersIndexRouteImport
+      parentRoute: typeof AuthedProgramsProgramIdRoute
+    }
     '/_authed/programs/$programId/members/$memberId': {
       id: '/_authed/programs/$programId/members/$memberId'
       path: '/members/$memberId'
@@ -693,6 +713,7 @@ interface AuthedProgramsProgramIdRouteChildren {
   AuthedProgramsProgramIdIndexRoute: typeof AuthedProgramsProgramIdIndexRoute
   AuthedProgramsProgramIdMembersMemberIdRoute: typeof AuthedProgramsProgramIdMembersMemberIdRoute
   AuthedProgramsProgramIdMembersNewRoute: typeof AuthedProgramsProgramIdMembersNewRoute
+  AuthedProgramsProgramIdMembersIndexRoute: typeof AuthedProgramsProgramIdMembersIndexRoute
 }
 
 const AuthedProgramsProgramIdRouteChildren: AuthedProgramsProgramIdRouteChildren =
@@ -708,6 +729,8 @@ const AuthedProgramsProgramIdRouteChildren: AuthedProgramsProgramIdRouteChildren
       AuthedProgramsProgramIdMembersMemberIdRoute,
     AuthedProgramsProgramIdMembersNewRoute:
       AuthedProgramsProgramIdMembersNewRoute,
+    AuthedProgramsProgramIdMembersIndexRoute:
+      AuthedProgramsProgramIdMembersIndexRoute,
   }
 
 const AuthedProgramsProgramIdRouteWithChildren =

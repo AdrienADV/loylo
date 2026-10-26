@@ -160,7 +160,10 @@ function MemberPage() {
 					fallback={
 						<>
 							<BalanceSkeleton />
-							<WalletCardSkeleton />
+							<div className="flex w-full max-w-md flex-col gap-4 md:w-72">
+								<WalletCardSkeleton />
+								{program.kind === "stamps" ? <RewardsCardSkeleton /> : null}
+							</div>
 						</>
 					}
 				>
@@ -171,7 +174,12 @@ function MemberPage() {
 							) : (
 								<Balance member={member} />
 							)}
-							<WalletCard member={member} />
+							<div className="flex w-full max-w-md flex-col gap-4 md:w-72">
+								<WalletCard member={member} />
+								{program.kind === "stamps" ? (
+									<RewardsCard program={program} member={member} />
+								) : null}
+							</div>
 						</>
 					)}
 				</Await>
@@ -258,16 +266,10 @@ function StampsBalance({
 		<section className="flex w-full max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
 			<div className="flex flex-col gap-3">
 				<span className="text-muted-foreground text-sm">Stamp card</span>
-				<div className="flex flex-wrap items-baseline justify-between gap-2">
-					<div className="font-semibold text-4xl tabular-nums">
-						{formatStampBalance(member.stamps, STAMPS_PER_CARD)}{" "}
-						<span className="font-normal text-base text-muted-foreground">
-							stamps
-						</span>
-					</div>
-					<span className="text-muted-foreground text-sm">
-						{member.stampRewards}{" "}
-						{member.stampRewards === 1 ? "reward" : "rewards"} given
+				<div className="font-semibold text-4xl tabular-nums">
+					{formatStampBalance(member.stamps, STAMPS_PER_CARD)}{" "}
+					<span className="font-normal text-base text-muted-foreground">
+						stamps
 					</span>
 				</div>
 				{full ? (
@@ -377,7 +379,7 @@ function walletStateDate(
 /** At a glance: whether the member's card is active, and in which wallets. */
 function WalletCard({ member }: { member: MemberView }) {
 	return (
-		<section className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4 md:w-72">
+		<section className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4">
 			<div className="flex items-center justify-between gap-2">
 				<span className="text-muted-foreground text-sm">Status</span>
 				<WalletStatus wallets={member.wallets} />
@@ -433,7 +435,7 @@ function WalletCardSkeleton() {
 	return (
 		<section
 			aria-hidden
-			className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4 md:w-72"
+			className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4"
 		>
 			<div className="flex items-center justify-between gap-2">
 				<span className="text-muted-foreground text-sm">Status</span>
@@ -446,6 +448,58 @@ function WalletCardSkeleton() {
 				<Skeleton className="size-9 shrink-0 rounded-full" />
 				<span className="flex min-w-0 flex-1 flex-col">
 					<SkeletonText className="w-28" />
+					<SkeletonText className="w-24 text-xs" />
+				</span>
+			</div>
+		</section>
+	);
+}
+
+/** How many rewards the member got from full stamp cards. */
+function RewardsCard({
+	program,
+	member,
+}: {
+	program: TeamProgramView;
+	member: MemberView;
+}) {
+	return (
+		<section className="flex flex-col gap-2 rounded-2xl border bg-surface p-4">
+			<span className="text-muted-foreground text-sm">Rewards given</span>
+			<div className="flex items-center gap-3">
+				<span
+					aria-hidden
+					className="flex size-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400"
+				>
+					<RiGift2Line className="size-4" />
+				</span>
+				<span className="flex min-w-0 flex-col">
+					<span className="font-semibold text-2xl tabular-nums leading-tight">
+						{member.stampRewards}
+					</span>
+					{program.stampReward ? (
+						<span className="truncate text-muted-foreground text-xs">
+							{program.stampReward}
+						</span>
+					) : null}
+				</span>
+			</div>
+		</section>
+	);
+}
+
+/** `RewardsCard` while the member loads. */
+function RewardsCardSkeleton() {
+	return (
+		<section
+			aria-hidden
+			className="flex flex-col gap-2 rounded-2xl border bg-surface p-4"
+		>
+			<span className="text-muted-foreground text-sm">Rewards given</span>
+			<div className="flex items-center gap-3">
+				<Skeleton className="size-9 shrink-0 rounded-full" />
+				<span className="flex min-w-0 flex-1 flex-col">
+					<SkeletonText className="w-8 text-2xl" />
 					<SkeletonText className="w-24 text-xs" />
 				</span>
 			</div>

@@ -8,12 +8,14 @@ import {
 	type StampIcon,
 	stampImageName,
 } from "#/features/programs/stamp-card";
-import { type HexColor, pickForegroundColor } from "#/lib/colors";
+import { type HexColor, mixColors, pickForegroundColor } from "#/lib/colors";
 
 /**
  * Draws the stamp card images in the browser: Workers cannot run native
  * image libraries. The background stays transparent, so the pass color shows
  * through; stamps use the pass's text color, and their icon the pass color.
+ * Empty slots use opaque mixes of the two rather than transparency, which
+ * reads washed out.
  */
 
 export interface StampCardDesign {
@@ -23,15 +25,21 @@ export interface StampCardDesign {
 
 const COLUMNS = 5;
 const ROWS = STAMPS_PER_CARD / COLUMNS;
-// Wallet scales the strip up to fill a taller area and crops its sides
-// (about 100 px each at this size): the stamps stay well inside.
-const PADDING_X = 165;
-const PADDING_Y = 24;
+// Wallet crops the sides of the strip when the pass is wider than the image's
+// shape: the stamps stay well inside. Cells come out square, 240 px, with
+// whole-pixel centers.
+const PADDING_X = 150;
+const PADDING_Y = 48;
 const CELL_WIDTH = (STAMP_IMAGE_SIZE.width - 2 * PADDING_X) / COLUMNS;
 const CELL_HEIGHT = (STAMP_IMAGE_SIZE.height - 2 * PADDING_Y) / ROWS;
-const RADIUS = 60;
-const ICON_SIZE = 64;
-const EMPTY_LINE_WIDTH = 5;
+const RADIUS = 96;
+const ICON_SIZE = 112;
+const EMPTY_LINE_WIDTH = 8;
+// How much of the text color goes into each part of an empty slot.
+const EMPTY_FILL_MIX = 0.08;
+const EMPTY_LINE_MIX = 0.4;
+const EMPTY_ICON_MIX = 0.3;
+const REWARD_ICON_MIX = 0.65;
 
 function drawIcon(
 	context: CanvasRenderingContext2D,
@@ -56,7 +64,12 @@ export function drawStampCard(
 	design: StampCardDesign,
 	stamps: number,
 ) {
-	const foreground = pickForegroundColor(design.backgroundColor);
+	const background = design.backgroundColor;
+	const foreground = pickForegroundColor(background);
+	const emptyFill = mixColors(background, foreground, EMPTY_FILL_MIX);
+	const emptyLine = mixColors(background, foreground, EMPTY_LINE_MIX);
+	const emptyIcon = mixColors(background, foreground, EMPTY_ICON_MIX);
+	const rewardIcon = mixColors(background, foreground, REWARD_ICON_MIX);
 	context.clearRect(0, 0, STAMP_IMAGE_SIZE.width, STAMP_IMAGE_SIZE.height);
 
 	for (let slot = 0; slot < STAMPS_PER_CARD; slot++) {
@@ -71,22 +84,20 @@ export function drawStampCard(
 		context.beginPath();
 		context.arc(x, y, RADIUS, 0, Math.PI * 2);
 		if (slot < stamps) {
-			context.globalAlpha = 1;
 			context.fillStyle = foreground;
 			context.fill();
-			context.fillStyle = design.backgroundColor;
+			context.fillStyle = background;
 			drawIcon(context, iconPath, x, y);
 		} else {
-			context.globalAlpha = 0.5;
-			context.strokeStyle = foreground;
+			context.fillStyle = emptyFill;
+			context.fill();
+			context.strokeStyle = emptyLine;
 			context.lineWidth = EMPTY_LINE_WIDTH;
 			context.stroke();
-			context.globalAlpha = isReward ? 0.5 : 0.2;
-			context.fillStyle = foreground;
+			context.fillStyle = isReward ? rewardIcon : emptyIcon;
 			drawIcon(context, iconPath, x, y);
 		}
 	}
-	context.globalAlpha = 1;
 }
 
 function toPng(canvas: HTMLCanvasElement): Promise<Blob> {

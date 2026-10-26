@@ -211,3 +211,16 @@ export function toProgramStats(row: ProgramStatsRow): ProgramStats {
 		redemptions: row.redemptions,
 	};
 }
+
+type ProgramVisitsRow =
+	Database["public"]["Functions"]["program_visits"]["Returns"][number];
+
+/** Visits of one UTC hour: the browser groups them into local days. */
+export interface HourlyVisits {
+	hour: string;
+	visits: number;
+}
+
+export function toHourlyVisits(row: ProgramVisitsRow): HourlyVisits {
+	return { hour: row.hour, visits: row.visits };
+}

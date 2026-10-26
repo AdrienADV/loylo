@@ -19,6 +19,7 @@ import {
 	nextMemberCursor,
 	TRANSACTION_COLUMNS,
 	TRANSACTIONS_PAGE_SIZE,
+	toHourlyVisits,
 	toMemberListItem,
 	toMemberView,
 	toProgramStats,
@@ -126,6 +127,24 @@ export const getProgramStats = createServerFn({ method: "GET" })
 			throw databaseError("load the statistics", error);
 		}
 		return toProgramStats(row);
+	});
+
+/**
+ * Visits of the program hour by hour over the last 31 days: enough for 30
+ * full days in any time zone.
+ */
+export const getProgramVisits = createServerFn({ method: "GET" })
+	.middleware([authMiddleware])
+	.validator(programIdSchema)
+	.handler(async ({ data, context }) => {
+		const { data: rows, error } = await context.supabase.rpc("program_visits", {
+			program_id: data.programId,
+			days: 31,
+		});
+		if (error) {
+			throw databaseError("load the visits", error);
+		}
+		return rows.map(toHourlyVisits);
 	});
 
 export const getMember = createServerFn({ method: "GET" })

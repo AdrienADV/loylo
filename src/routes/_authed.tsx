@@ -4,11 +4,10 @@ import {
 	redirect,
 	useNavigate,
 	useParams,
-	useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { signOut } from "#/features/auth/auth.functions";
-import { getAuthedLayout } from "#/features/programs/programs.functions";
+import { getCurrentUser, signOut } from "#/features/auth/auth.functions";
+import { listPrograms } from "#/features/programs/programs.functions";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
 	SidebarInset,
@@ -20,29 +19,25 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 /**
  * Pages for signed-in merchants. This guard only decides what the browser
  * shows; server functions check the session themselves (`authMiddleware`).
- *
- * The check is in the loader rather than `beforeLoad`: `beforeLoad` runs on
- * every navigation, which cost a request to the Worker on each click, while
- * a loader stays cached as long as its route stays on screen. A session that
- * ends in the meantime is caught by the next server function the page calls.
  */
 export const Route = createFileRoute("/_authed")({
-	loader: async ({ location }) => {
-		const layout = await getAuthedLayout();
-		if (!layout) {
+	beforeLoad: async ({ location }) => {
+		const user = await getCurrentUser();
+		if (!user) {
 			throw redirect({ to: "/login", search: { redirect: location.href } });
 		}
-		// The sidebar lists every program to switch between them.
-		return layout;
+		return { user };
 	},
+	// The sidebar lists every program to switch between them.
+	loader: () => listPrograms(),
 	component: AuthedLayout,
 });
 
 function AuthedLayout() {
-	const { user, programs } = Route.useLoaderData();
+	const { user } = Route.useRouteContext();
+	const programs = Route.useLoaderData();
 	const { programId } = useParams({ strict: false });
 	const navigate = useNavigate();
-	const router = useRouter();
 	const signOutFn = useServerFn(signOut);
 
 	// Outside a program's pages, the sidebar focuses on the newest program.
@@ -52,8 +47,6 @@ function AuthedLayout() {
 	async function handleSignOut() {
 		await signOutFn();
 		await navigate({ to: "/login" });
-		// Drops the signed-in pages kept in memory, so they can't show again.
-		router.clearCache();
 	}
 
 	return (

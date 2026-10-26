@@ -9,9 +9,9 @@ export const Route = createFileRoute("/_authed/programs/$programId")({
 			throw notFound();
 		}
 		// The sidebar loaded every program already: no request on the way in.
-		const { loaderData } = await parentMatchPromise;
+		const { loaderData: programs } = await parentMatchPromise;
 		return (
-			loaderData?.programs.find((program) => program.id === params.programId) ??
+			programs?.find((program) => program.id === params.programId) ??
 			getProgram({ data: { programId: params.programId } })
 		);
 	},

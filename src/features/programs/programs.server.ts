@@ -17,7 +17,6 @@ import {
 import type { WalletSyncResult } from "#/features/wallet-sync/wallet-sync";
 import { getOptionalGoogleWalletConfig } from "#/lib/config.server";
 import type { Database, Tables } from "#/lib/supabase/database.types";
-import { databaseError } from "#/lib/supabase/errors.server";
 import { createGoogleWalletClient } from "#/lib/wallet/google/client.server";
 import { buildLoyaltyClass } from "#/lib/wallet/google/objects";
 
@@ -123,22 +122,6 @@ export function toTeamProgramView(
 		throw new Error(`No team row for program ${row.id}`);
 	}
 	return { ...toProgramView(supabase, row), role: membership.role };
-}
-
-/** The programs whose team `userId` is in, newest first. */
-export async function listTeamPrograms(
-	supabase: Supabase,
-	userId: string,
-): Promise<TeamProgramView[]> {
-	const { data, error } = await supabase
-		.from("programs")
-		.select(TEAM_PROGRAM_COLUMNS)
-		.eq("program_members.user_id", userId)
-		.order("created_at", { ascending: false });
-	if (error) {
-		throw databaseError("load your programs", error);
-	}
-	return data.map((row) => toTeamProgramView(supabase, row));
 }
 
 /** PNG dimensions, read from the IHDR chunk, or `null` if not a PNG. */

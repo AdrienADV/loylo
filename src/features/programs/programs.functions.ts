@@ -9,7 +9,6 @@ import {
 	programIdSchema,
 } from "#/features/programs/programs.schemas";
 import {
-	listTeamPrograms,
 	newImageFolder,
 	newStampImageFolder,
 	PROGRAM_COLUMNS,
@@ -27,7 +26,6 @@ import { requireProgramAdmin } from "#/features/team/team.server";
 import { PROGRAM_TO_SYNC_COLUMNS } from "#/features/wallet-sync/wallet-sync";
 import { syncProgramWallets } from "#/features/wallet-sync/wallet-sync.server";
 import { databaseError } from "#/lib/supabase/errors.server";
-import { createUserClient } from "#/lib/supabase/user-client.server";
 
 /**
  * Row Level Security limits every query to the programs whose team the
@@ -69,27 +67,17 @@ const MISSING_STAMP_IMAGES = "The stamp card images are missing. Save again.";
 
 export const listPrograms = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
-	.handler(({ context }) => listTeamPrograms(context.supabase, context.userId));
-
-/**
- * What the signed-in pages' layout needs, in one request: the user and the
- * programs of their teams. `null` when signed out, so the route can redirect
- * to the login page and back.
- */
-export const getAuthedLayout = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const supabase = createUserClient();
-		const { data } = await supabase.auth.getClaims();
-		if (!data) {
-			return null;
+	.handler(async ({ context }) => {
+		const { data, error } = await context.supabase
+			.from("programs")
+			.select(TEAM_PROGRAM_COLUMNS)
+			.eq("program_members.user_id", context.userId)
+			.order("created_at", { ascending: false });
+		if (error) {
+			throw databaseError("load your programs", error);
 		}
-		const userId = data.claims.sub;
-		return {
-			user: { id: userId, email: data.claims.email ?? "" },
-			programs: await listTeamPrograms(supabase, userId),
-		};
-	},
-);
+		return data.map((row) => toTeamProgramView(context.supabase, row));
+	});
 
 export const getProgram = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])

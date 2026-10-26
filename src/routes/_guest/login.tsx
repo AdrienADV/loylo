@@ -1,9 +1,4 @@
-import {
-	createFileRoute,
-	Link,
-	useNavigate,
-	useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { signIn } from "#/features/auth/auth.functions";
@@ -28,12 +23,9 @@ export const Route = createFileRoute("/_guest/login")({
 function LoginPage() {
 	const search = Route.useSearch();
 	const navigate = useNavigate();
-	const router = useRouter();
 	const signInFn = useServerFn(signIn);
 	const form = useSchemaForm(signInSchema, async (data) => {
 		await signInFn({ data });
-		// Signed-in pages kept from an expired session may be another account's.
-		router.clearCache();
 		await navigate({ href: search.redirect ?? "/dashboard" });
 	});
 

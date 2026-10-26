@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WalletLogo } from "#/features/members/components/wallet-logo";
 import {
 	type MemberPassFields,
 	memberPassFieldsSchema,
@@ -12,6 +13,10 @@ import { SkeletonButton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
+
+/** Wallet buttons side by side, tall enough for their logo. */
+const WALLET_BUTTON_CLASS =
+	"h-12 flex-1 basis-0 gap-2 whitespace-normal text-center leading-tight";
 
 /**
  * Name and email of the customer, with one submit button per available
@@ -61,7 +66,7 @@ export function MemberPassForm({
 					error={form.fieldErrors.email}
 				/>
 				<FormAlert>{form.fieldErrors.provider}</FormAlert>
-				<div className="flex flex-col gap-2">
+				<div className="flex gap-2">
 					{WALLET_PROVIDERS.filter((provider) => wallets[provider]).map(
 						(provider) => (
 							<Button
@@ -70,7 +75,9 @@ export function MemberPassForm({
 								name="provider"
 								value={provider}
 								disabled={form.pending}
+								className={WALLET_BUTTON_CLASS}
 							>
+								<WalletLogo provider={provider} />
 								{form.pending && submitted === provider
 									? pendingLabel
 									: submitLabels[provider]}
@@ -98,9 +105,9 @@ export function MemberPassFormSkeleton({
 						<Skeleton className="h-9 rounded-3xl" />
 					</Field>
 				))}
-				<div className="flex flex-col gap-2">
+				<div className="flex gap-2">
 					{WALLET_PROVIDERS.map((provider) => (
-						<SkeletonButton key={provider}>
+						<SkeletonButton key={provider} className={WALLET_BUTTON_CLASS}>
 							{submitLabels[provider]}
 						</SkeletonButton>
 					))}

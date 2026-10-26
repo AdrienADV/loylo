@@ -5,7 +5,7 @@
     "": {
       "name": "loylo",
       "dependencies": {
-        "@animate-ui/react": "2.2.1",
+        "@animate-ui/react": "2.3.0",
         "@base-ui/react": "^1.8.0",
         "@fontsource-variable/dm-sans": "^5.3.0",
         "@fontsource-variable/newsreader": "^5.3.0",
@@ -56,7 +56,7 @@
     },
   },
   "packages": {
-    "@animate-ui/react": ["@animate-ui/react@2.2.1", "", { "peerDependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/react": "^0.27.20", "@shadcn/react": "^0.3.1", "input-otp": "^1.5.0", "motion": "^14.0.0", "radix-ui": "^1.6.0", "react": "^19.0.0", "react-aria-components": "^1.21.0", "react-dom": "^19.0.0", "shiki": "^4.5.0" }, "optionalPeers": ["@base-ui/react", "@floating-ui/react", "@shadcn/react", "input-otp", "radix-ui", "react-aria-components", "shiki"] }, "sha512-hCY0IvRFhysr4yaCDOkbL0thbsweiQQqfzTXTyAMCZ+0iEUg7xDwDY2yXod5Ij5jfrbG+NarLvbkh3NSGL9m/Q=="],
+    "@animate-ui/react": ["@animate-ui/react@2.3.0", "", { "peerDependencies": { "@base-ui/react": "^1.8.0", "@floating-ui/react": "^0.27.20", "@shadcn/react": "^0.3.1", "input-otp": "^1.5.0", "motion": "^14.0.0", "radix-ui": "^1.6.0", "react": "^19.0.0", "react-aria-components": "^1.21.0", "react-dom": "^19.0.0", "shiki": "^4.5.0" }, "optionalPeers": ["@base-ui/react", "@floating-ui/react", "@shadcn/react", "input-otp", "radix-ui", "react-aria-components", "shiki"] }, "sha512-E2ElL/dJuoHdUKrI+M8g9IVkdaS5FfMYT7i8+jAqQeHjAv4Hnsw4CkVpKUPqeAzfz/ARKoCC0Ktm16MN/K/7Dg=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 

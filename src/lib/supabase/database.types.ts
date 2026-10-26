@@ -284,6 +284,11 @@ isOneToOne: false
               "members": number,"members_in_wallet": number,"new_members": number,"point_additions": number,"redemptions": number
             }[]
                            },
+"program_visits":
+{ Args: { "days"?: number,"program_id": string }; Returns: {
+              "hour": string,"visits": number
+            }[]
+                           },
 "record_wallet_pass_install":
 { Args: { "installed": boolean,"pass_id": string }; Returns: undefined
                            },

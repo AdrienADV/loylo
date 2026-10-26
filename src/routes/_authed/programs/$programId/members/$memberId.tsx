@@ -127,7 +127,7 @@ function MemberPage() {
 		<div className="flex flex-col gap-8">
 			<div className="flex min-w-0 flex-col gap-1">
 				<Link
-					to="/programs/$programId"
+					to="/programs/$programId/members"
 					params={{ programId }}
 					className="text-muted-foreground text-sm"
 				>

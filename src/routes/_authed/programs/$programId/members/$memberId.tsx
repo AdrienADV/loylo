@@ -23,7 +23,11 @@ import {
 	PointsFormSkeleton,
 } from "#/features/members/components/points-form";
 import { StampsForm } from "#/features/members/components/stamps-form";
-import { WALLET_NAMES } from "#/features/members/components/wallet-state-badge";
+import { WalletLogo } from "#/features/members/components/wallet-logo";
+import {
+	INSTALL_STATE_LABELS,
+	WALLET_NAMES,
+} from "#/features/members/components/wallet-state-badge";
 import {
 	addStamps,
 	adjustPoints,
@@ -38,6 +42,7 @@ import type {
 import type {
 	MemberPassView,
 	MemberView,
+	PassInstallState,
 	TransactionView,
 	WalletState,
 } from "#/features/members/members.server";
@@ -149,15 +154,28 @@ function MemberPage() {
 				</Await>
 			</div>
 
-			<Await promise={member} fallback={<BalanceSkeleton />}>
-				{(member) =>
-					program.kind === "stamps" ? (
-						<StampsBalance program={program} member={member} />
-					) : (
-						<Balance member={member} />
-					)
-				}
-			</Await>
+			<div className="flex flex-col gap-4 md:flex-row md:items-start">
+				<Await
+					promise={member}
+					fallback={
+						<>
+							<BalanceSkeleton />
+							<WalletCardSkeleton />
+						</>
+					}
+				>
+					{(member) => (
+						<>
+							{program.kind === "stamps" ? (
+								<StampsBalance program={program} member={member} />
+							) : (
+								<Balance member={member} />
+							)}
+							<WalletCard member={member} />
+						</>
+					)}
+				</Await>
+			</div>
 
 			<section className="flex flex-col gap-3">
 				<h3 className="font-semibold">History</h3>
@@ -185,12 +203,9 @@ function Balance({ member }: { member: MemberView }) {
 	const [syncFailedFor, setSyncFailedFor] = useState<string | null>(null);
 
 	return (
-		<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
+		<section className="flex w-full max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
 			<div>
-				<div className="flex items-center justify-between gap-2">
-					<span className="text-muted-foreground text-sm">Balance</span>
-					<WalletStatus wallets={member.wallets} />
-				</div>
+				<span className="text-muted-foreground text-sm">Balance</span>
 				<div className="font-semibold text-4xl tabular-nums">
 					{member.points}{" "}
 					<span className="font-normal text-base text-muted-foreground">
@@ -240,12 +255,9 @@ function StampsBalance({
 	const full = member.stamps === STAMPS_PER_CARD;
 
 	return (
-		<section className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
+		<section className="flex w-full max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4">
 			<div className="flex flex-col gap-3">
-				<div className="flex items-center justify-between gap-2">
-					<span className="text-muted-foreground text-sm">Stamp card</span>
-					<WalletStatus wallets={member.wallets} />
-				</div>
+				<span className="text-muted-foreground text-sm">Stamp card</span>
 				<div className="flex flex-wrap items-baseline justify-between gap-2">
 					<div className="font-semibold text-4xl tabular-nums">
 						{formatStampBalance(member.stamps, STAMPS_PER_CARD)}{" "}
@@ -301,16 +313,10 @@ function BalanceSkeleton() {
 	return (
 		<section
 			aria-hidden
-			className="flex max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4"
+			className="flex w-full max-w-md flex-col gap-4 rounded-2xl border bg-surface p-4"
 		>
 			<div>
-				<div className="flex items-center justify-between gap-2">
-					<span className="text-muted-foreground text-sm">Balance</span>
-					<span className="inline-flex animate-pulse items-center gap-1.5 rounded-full bg-foreground/[0.07] px-2.5 py-0.5 font-medium text-transparent text-xs">
-						<span className="size-1.5" />
-						Active
-					</span>
-				</div>
+				<span className="text-muted-foreground text-sm">Balance</span>
 				<div className="font-semibold text-4xl">
 					<SkeletonText className="w-40" />
 				</div>
@@ -341,6 +347,109 @@ function WalletStatus({ wallets }: { wallets: WalletState[] }) {
 			/>
 			{active ? "Active" : "Inactive"}
 		</span>
+	);
+}
+
+const STATE_DOT_CLASSES: Record<PassInstallState, string> = {
+	installed: "bg-success",
+	removed: "bg-amber-500",
+	"not-added": "bg-muted-foreground/40",
+};
+
+/** When the member's latest card in `provider` reached its current state. */
+function walletStateDate(
+	passes: MemberPassView[],
+	{ provider, state }: WalletState,
+): string | null {
+	const dates = passes
+		.filter((pass) => pass.provider === provider && pass.state === state)
+		.map((pass) =>
+			state === "installed"
+				? pass.installedAt
+				: state === "removed"
+					? pass.removedAt
+					: pass.issuedAt,
+		)
+		.filter((date) => date !== null);
+	return dates.sort().at(-1) ?? null;
+}
+
+/** At a glance: whether the member's card is active, and in which wallets. */
+function WalletCard({ member }: { member: MemberView }) {
+	return (
+		<section className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4 md:w-72">
+			<div className="flex items-center justify-between gap-2">
+				<span className="text-muted-foreground text-sm">Status</span>
+				<WalletStatus wallets={member.wallets} />
+			</div>
+			{member.wallets.length === 0 ? (
+				<p className="text-muted-foreground text-sm">No card issued yet.</p>
+			) : (
+				<ul className="flex flex-col gap-3">
+					{member.wallets.map((wallet) => {
+						const date = walletStateDate(member.passes, wallet);
+						return (
+							<li
+								key={wallet.provider}
+								className="flex items-center gap-3 text-sm"
+							>
+								<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background">
+									<WalletLogo provider={wallet.provider} />
+								</span>
+								<span className="flex min-w-0 flex-1 flex-col">
+									<span className="truncate font-medium">
+										{WALLET_NAMES[wallet.provider]}
+									</span>
+									<span className="flex items-center gap-1.5 text-muted-foreground text-xs">
+										<span
+											aria-hidden
+											className={cn(
+												"size-1.5 shrink-0 rounded-full",
+												STATE_DOT_CLASSES[wallet.state],
+											)}
+										/>
+										<span className="truncate">
+											{INSTALL_STATE_LABELS[wallet.state]}
+											{date ? (
+												<>
+													{" · "}
+													<FormattedDate value={date} />
+												</>
+											) : null}
+										</span>
+									</span>
+								</span>
+							</li>
+						);
+					})}
+				</ul>
+			)}
+		</section>
+	);
+}
+
+/** `WalletCard` while the member loads. */
+function WalletCardSkeleton() {
+	return (
+		<section
+			aria-hidden
+			className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4 md:w-72"
+		>
+			<div className="flex items-center justify-between gap-2">
+				<span className="text-muted-foreground text-sm">Status</span>
+				<span className="inline-flex animate-pulse items-center gap-1.5 rounded-full bg-foreground/[0.07] px-2.5 py-0.5 font-medium text-transparent text-xs">
+					<span className="size-1.5" />
+					Active
+				</span>
+			</div>
+			<div className="flex items-center gap-3 text-sm">
+				<Skeleton className="size-9 shrink-0 rounded-full" />
+				<span className="flex min-w-0 flex-1 flex-col">
+					<SkeletonText className="w-28" />
+					<SkeletonText className="w-24 text-xs" />
+				</span>
+			</div>
+		</section>
 	);
 }
 

@@ -154,7 +154,7 @@ function MemberPage() {
 				</Await>
 			</div>
 
-			<div className="flex flex-col gap-4 md:flex-row md:items-start">
+			<div className="flex flex-col gap-4 md:flex-row">
 				<Await
 					promise={member}
 					fallback={
@@ -379,7 +379,7 @@ function walletStateDate(
 /** At a glance: whether the member's card is active, and in which wallets. */
 function WalletCard({ member }: { member: MemberView }) {
 	return (
-		<section className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4">
+		<section className="flex w-full max-w-md flex-col gap-3 md:flex-1 rounded-2xl border bg-surface p-4">
 			<div className="flex items-center justify-between gap-2">
 				<span className="text-muted-foreground text-sm">Status</span>
 				<WalletStatus wallets={member.wallets} />
@@ -435,7 +435,7 @@ function WalletCardSkeleton() {
 	return (
 		<section
 			aria-hidden
-			className="flex w-full max-w-md flex-col gap-3 rounded-2xl border bg-surface p-4"
+			className="flex w-full max-w-md flex-col gap-3 md:flex-1 rounded-2xl border bg-surface p-4"
 		>
 			<div className="flex items-center justify-between gap-2">
 				<span className="text-muted-foreground text-sm">Status</span>
@@ -464,7 +464,7 @@ function RewardsCard({
 	member: MemberView;
 }) {
 	return (
-		<section className="flex flex-col gap-2 rounded-2xl border bg-surface p-4">
+		<section className="flex flex-col gap-2 md:flex-1 rounded-2xl border bg-surface p-4">
 			<span className="text-muted-foreground text-sm">Rewards given</span>
 			<div className="flex items-center gap-3">
 				<span
@@ -493,7 +493,7 @@ function RewardsCardSkeleton() {
 	return (
 		<section
 			aria-hidden
-			className="flex flex-col gap-2 rounded-2xl border bg-surface p-4"
+			className="flex flex-col gap-2 md:flex-1 rounded-2xl border bg-surface p-4"
 		>
 			<span className="text-muted-foreground text-sm">Rewards given</span>
 			<div className="flex items-center gap-3">

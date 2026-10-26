@@ -12,11 +12,12 @@ export const STAMPS_PER_CARD = 10;
 export const MAX_INITIAL_STAMPS = STAMPS_PER_CARD - 1;
 
 /**
- * One image per number of stamps, 0 to 10. Sized for the strip of an Apple
- * store card at @3x (375×123 points); Google Wallet shows the same image as
- * the hero image of the pass, which wants about 3:1.
+ * One image per number of stamps, 0 to 10. Shaped like the strip of an Apple
+ * store card on current iPhones (375×144 points), at 4× so Wallet only ever
+ * scales it down, even on the widest screens; Google Wallet shows the same
+ * image as the hero image of the pass.
  */
-export const STAMP_IMAGE_SIZE = { width: 1125, height: 369 } as const;
+export const STAMP_IMAGE_SIZE = { width: 1500, height: 576 } as const;
 
 export const STAMP_COUNTS = Array.from(
 	{ length: STAMPS_PER_CARD + 1 },

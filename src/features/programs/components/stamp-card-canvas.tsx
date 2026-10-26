@@ -37,7 +37,7 @@ export function StampCardCanvas({
 			height={STAMP_IMAGE_SIZE.height}
 			role="img"
 			aria-label={`${stamps} of ${STAMPS_PER_CARD} stamps`}
-			className={cn("aspect-[1125/369] w-full", className)}
+			className={cn("aspect-[1500/576] w-full", className)}
 		/>
 	);
 }

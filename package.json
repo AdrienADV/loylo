@@ -51,7 +51,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
     "@cloudflare/vite-plugin": "^1.26.0",
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
     "@tanstack/devtools-vite": "0.8.5",
     "@tanstack/intent": "^0.5.4",
     "@tanstack/router-cli": "^1.132.0",

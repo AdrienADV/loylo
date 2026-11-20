@@ -28,7 +28,7 @@
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/markdown": "1.0.0",
+    "@tanstack/markdown": "1.2.1",
     "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-router-devtools": "1.167.2",
